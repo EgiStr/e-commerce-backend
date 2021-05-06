@@ -47,7 +47,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     # requeired
 
     email = models.EmailField(_('email address'), unique=True)
-    username = models.CharField(_(' Username '),max_length=50, unique=True)
+    username = models.CharField(_(' Username '),max_length=50)
 
     # opsional 
     profile = models.ImageField(upload_to='profile', height_field='height_field', width_field='width_field',blank=True, null=True) 
