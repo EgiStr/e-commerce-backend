@@ -9,9 +9,9 @@ from .views import (
     RegisterUserApiView)
 
 urlpatterns = [
+    path('',DashbordView.as_view(),name="dashboard"),
     path('login/',LoginView.as_view(),name="login"),
+    path('logout/',LogoutView.as_view(),name="logout"),
     path("register/", RegisterUserApiView.as_view(), name="register"),
     path("refresh/", RefreshTokenView.as_view(), name="refresh"),
-    path('logout/',LogoutView.as_view(),name="logout"),
-    path('dashbord/',DashbordView.as_view(),name="dashboard")
 ]

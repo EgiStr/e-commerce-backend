@@ -19,6 +19,7 @@ class VarianInline(admin.TabularInline):
     fields = [
         'name',
         'stock',
+        'price',
         'is_active'
         
     ]

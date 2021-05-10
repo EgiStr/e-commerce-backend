@@ -1,5 +1,8 @@
+from order.api.serializers import OrderSeriliazer
+from costumer.models import Location, Store
+from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 
 from django.contrib.auth import get_user_model
 
@@ -47,3 +50,66 @@ class registeruser(ModelSerializer):
         user.save()
 
         return user
+
+class LocationSerializer(ModelSerializer):
+    class Meta:
+        model = Location
+        fields = [
+            'geolocation',
+            'city',
+            'address',
+        ]
+
+class UserDetailSerilaizer(ModelSerializer):
+    location = SerializerMethodField()
+    order_history = SerializerMethodField()
+    class Meta:
+        model = User
+        fields = [
+            'email',
+            'username',
+            'profile',
+            'phone',
+            'location',
+            'order_history'
+        ]
+    
+    def get_location(self,obj):
+        qs = obj.get_location()
+        return LocationSerializer(qs,many=True).data
+    
+    def get_order_history(self,obj):
+        return OrderSeriliazer(obj.get_order_history(),many=True).data
+
+
+class UserEditProfilSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'username',
+            'profile',
+            'phone',
+        ]
+
+class StoreproductDetailSerializer(ModelSerializer):
+    location = SerializerMethodField()
+    count_product = SerializerMethodField()
+
+    class Meta:
+        model = Store
+        fields = (
+            'name',
+            'location',
+            'count_product'
+        )
+    
+    def get_location(self,obj):
+        try:
+            qs = obj.get_location().first()
+            return LocationSerializer(qs).data
+        except Exception as e :
+            return 
+    
+    def get_count_product(self,obj):
+        qs = obj.get_product().count()
+        return qs

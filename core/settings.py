@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 from django.conf import settings
+from datetime import timedelta
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -68,6 +70,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 
+CORS_ALLOW_CREDENTIAL = True
 
 ROOT_URLCONF = 'core.urls'
 
@@ -106,9 +109,8 @@ REST_FRAMEWORK = {
     ),
 }
 
-from datetime import timedelta
 
-...
+
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),

@@ -1,18 +1,28 @@
-from rest_framework.generics import CreateAPIView, ListAPIView
+from rest_framework.generics import CreateAPIView
+from datetime import datetime,timedelta
+from rest_framework.mixins import UpdateModelMixin
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
 
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
+from rest_framework.views import APIView
 
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import InvalidToken,TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+
+
+from . permission import isAuthor
 from .serializers import (
-    registeruser
+    registeruser,
+    UserDetailSerilaizer,
+    UserEditProfilSerializer,
 )
+
+User = get_user_model()
 
 """ create jwt token manualy """
 def get_tokens_for_user(user):
@@ -23,7 +33,8 @@ def get_tokens_for_user(user):
     }
 
 """ create jwt http only """
-class LoginView(CreateAPIView):
+class LoginView(APIView):
+    permission_classes = [ AllowAny]
     def post(self, request, format=None):
         response = Response()     
 
@@ -37,10 +48,12 @@ class LoginView(CreateAPIView):
             if user.is_active:
                 """ create token and send http only cookies """
                 data = get_tokens_for_user(user)
+                tomorrow = datetime.now() + timedelta(days = 1)
+                expires = datetime.strftime(tomorrow, "%a, %d-%b-%Y %H:%M:%S GMT") 
                 response.set_cookie(
                                     key = settings.SIMPLE_JWT['AUTH_COOKIE'], 
                                     value = data["access"],
-                                    expires = settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'],
+                                    expires = expires,
                                     secure = settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
                                     httponly = settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
                                     samesite = settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
@@ -53,7 +66,7 @@ class LoginView(CreateAPIView):
         else:
             return Response({"Invalid" : "Invalid username or password!!"},status=status.HTTP_400_BAD_REQUEST)
 
-class RefreshTokenView(CreateAPIView):
+class RefreshTokenView(APIView):
     def post(self,request, format=None):
         #  check token refresh valid
         serializer = TokenRefreshSerializer(data=request.data)
@@ -69,10 +82,12 @@ class RefreshTokenView(CreateAPIView):
             'access':data['access'],
             "refresh":data['refresh']
         }
+        tomorrow = datetime.now() + datetime.timedelta(days = 1)
+        expires = datetime.strftime(tomorrow, "%a, %d-%b-%Y %H:%M:%S GMT") 
         response.set_cookie(
                             key = settings.SIMPLE_JWT['AUTH_COOKIE'], 
                             value = data["access"],
-                            expires = settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'],
+                            expires = expires,
                             secure = settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
                             httponly = settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
                             samesite = settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
@@ -83,7 +98,7 @@ class RefreshTokenView(CreateAPIView):
         
         
 
-class LogoutView(CreateAPIView):
+class LogoutView(APIView):
     def post(self,request, format=None):
         """ remove http only """
         response = Response()        
@@ -100,10 +115,51 @@ class RegisterUserApiView(CreateAPIView):
     permission_classes = [AllowAny]
 
 
-class DashbordView(ListAPIView):
-    permission_classes = [IsAuthenticated]
+class DashbordView(UpdateModelMixin,APIView):
+    
+
+    permission_classes = [isAuthor,IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method != 'GET':
+            return UserEditProfilSerializer
+        return UserDetailSerilaizer
+    
+    def get_queryset(self):
+        return User.objects.get(id=self.request.user.id)
+    
+    def get_object(self):
+        return self.request.user
+
+
     def get(self,request):
-        respond = {
-            'message':'success'
-        }
-        return Response(respond,status=status.HTTP_200_OK)
+
+        data = UserDetailSerilaizer(self.get_queryset()).data
+        return Response(data)
+
+    # delete user / not active user !
+    def delete(self,request):
+        user = request.user
+        user.is_active = False
+        user.save()
+
+        response = Response()        
+        response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE'])
+        response.data = {'message':f"success Remove user {user.email}, GoobBye Friends "}
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return response
+        
+
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer_class()
+        data = serializer(instance, data=request.data)
+        try:            
+            data.is_valid(raise_exception=True)
+        except Exception as e:
+            Response({'message':"data invalid !"},status=status.HTTP_400_BAD_REQUEST)
+
+        self.perform_update(data)
+        return Response(data.data)
+
+ 

@@ -64,7 +64,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     height_field = models.IntegerField(default=0)
     width_field = models.IntegerField(default=0)
 
-    Location = models.ForeignKey("Location", on_delete=models.CASCADE ,blank=True, null=True)
+
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -74,12 +74,19 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+    def get_location(self):
+        qs = self.user_address.all()
+        return qs
+        
+    def get_order_history(self):
+        qs = self.order.all()
+        return qs
+
 class Store(models.Model):
     phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$', message="Phone number must be entered in the format: '+999999999 / 08++'. Up to 15 digits allowed.")
   
     pemilik = models.OneToOneField(CustomUser,on_delete=models.CASCADE) 
     name = models.CharField(_("name your store"), max_length=70 , unique=True)
-    location = models.ForeignKey("Location", on_delete=models.CASCADE)
     phone = models.CharField(validators=[phone_regex], max_length=17) # validators should be a list
     about = models.TextField(_(" desc about your store ") , max_length=600, blank=True, null=True)
     
@@ -88,13 +95,27 @@ class Store(models.Model):
 
     def __unicode__(self):
         return  self.name
+    
+    def get_location(self):
+        return self.store_address.all()
+    
+    def get_product(self):
+        return self.product.all()
 
 class Location(models.Model):
     CHOICE = (
         ('costomer','costumer'),
         ('store','store'),
     )
+
     geolocation = models.CharField(max_length=50) # use third party
     city = models.CharField(max_length=50)
     address = models.CharField(max_length=50)
+    
+    # pemilik location
+    user = models.ForeignKey('CustomUser', related_name='user_address', on_delete=models.CASCADE,blank=True, null=True)
+    store = models.ForeignKey("Store", related_name="store_address", on_delete=models.CASCADE, blank=True, null=True)
     type = models.CharField(max_length=50,choices=CHOICE)
+
+    def __str__(self) -> str:
+        return self.user.username + " address Privacy euy!"

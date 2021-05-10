@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 
-from store.models import Product
+from store.models import Varian
 # Create your models here.
 
 
@@ -31,13 +31,16 @@ class Order(models.Model):
     def get_total_paid(self):
         return sum(item.get_total_price for item in self.order_item.all())
     
+    def get_order_item(self):
+        return self.order_item.all()
+    
     def save(self, *args, **kwargs):
        self.total_paid = self.get_total_paid
        super(Order, self).save(*args, **kwargs) # Call the real save() method
  
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name="order_item", on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name="product_order",on_delete=models.CASCADE)
+    product = models.ForeignKey(Varian, related_name="product_order",on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
 
     def __str__(self) :
