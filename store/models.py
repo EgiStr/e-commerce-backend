@@ -1,8 +1,10 @@
+from enum import unique
 from django.db import models
 from django.db.models import Avg,Min
 
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+
 from django.core.validators import MinValueValidator, MaxValueValidator
 from costumer.models import Store
 # Create your models here.
@@ -52,8 +54,14 @@ class Product(models.Model):
     update = models.DateTimeField(auto_now=True, auto_now_add=False)
     slug = models.SlugField(blank=True, null=True)
     sold = models.IntegerField(_("terjual "), default=0)
+    price = models.IntegerField(_("harga dalam Rupiah "), default=0)
+
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['penjual','title'],  name="you already have this title")
+        ]
+
         ordering = ['-create_at']
 
     def __str__(self):
@@ -76,13 +84,13 @@ class Product(models.Model):
         return self.rating.all()
     
     def get_thumb(self):
-        return self.images.filter(is_thumb=True)
+        return self.images.get(is_thumb=True)
 
     def get_image(self):
         return self.images.all()
 
     def get_varian(self):
-        return self.varian.all()
+        return self.varian.filter(is_active=True)
         
     
 class Rating(models.Model):
@@ -100,4 +108,5 @@ class Bookmark(models.Model):
     product = models.ForeignKey(Product,  related_name="bookmark",on_delete=models.CASCADE)
 
     def __str__(self) -> str:
+        
         return self.user.username + " bookmark "

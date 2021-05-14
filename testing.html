@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- just for testing api -->
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form name="uploader" method="post" id="form" >
+        <input id="image" name="image" type="file">
+        <input id="check" name="is_thumb" type="checkbox" >
+        <button type="submit" > submit</button>
+    </form>
+</body>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script>
+        function createFormData(formData, key, data) {
+            if (data === Object(data) || Array.isArray(data)) {
+                for (var i in data) {
+                    createFormData(formData, key + '[' + i + ']', data[i]);
+                }
+            } else {
+                formData.append(key, data);
+            }
+        }
+        function transformInToFormObject(data) {
+            let formData = new FormData();
+            for (let key in data) {
+                if (Array.isArray(data[key])) {
+                data[key].forEach((obj, index) => {
+                    let keyList = Object.keys(obj);
+                    keyList.forEach((keyItem) => {
+                    let keyName = [key, "[", index, "]", ".", keyItem].join("");
+                    formData.append(keyName, obj[keyItem]);
+                    });
+                });
+                } else if (typeof data[key] === "object") { 
+                for (let innerKey in data[key]) {
+                    formData.append(`${key}.${innerKey}`, data[key][innerKey]);
+                }
+                } else {
+                formData.append(key, data[key]);
+                }
+            }
+            return formData;
+        }
+    
+        $("#form").on("submit", function(ev) {
+            let sampleData = {
+            penjual: 1,
+            title: "bersama aku",
+            desc: "makanann enak",
+            category:'waw',
+            varian: [
+                    {
+                        'name':"sm",
+                        'stock':10,
+                        'price':10000,
+                        
+                    }
+            ],
+           
+            };
+            console.log(sampleData)
+            ev.preventDefault(); // Prevent browser default submit.
+            let image = 
+                    {
+                        "image":$('#image')[0].files[0],
+                        "is_thumb":true
+                    }
+                
+            let varian = [
+                    {
+                        'name':"sm",
+                        'stock':10,
+                        'price':10000,
+                        'image':{
+                            'image':$('#image')[0].files[0],
+                            'is_thumb':false
+                        }
+                    }
+                ]
+            console.log(varian[0].name)
+            var formData = new FormData();
+           
+            formData.append('penjual',1)
+            formData.append( 'title', "hello world")
+            formData.append( 'desc', "makanan enak")
+            formData.append( 'category', "makanan ringan")
+     
+
+            formData.append( 'varian[0].stock', 10)
+            formData.append( 'varian[0].price', 10000)
+    
+            let data = transformInToFormObject(sampleData)
+            // createFormData(formData,'varian',varian)
+            for (var pair in data.entries()) {
+                console.log(pair[0]+ ', ' + pair[1]); 
+            }
+                
+            $.ajax({
+                url: "http://127.0.0.1:8000/api/product/",
+                type: "POST",
+                data: data,
+                success: function (msg) {
+                console.log(msg)
+                },
+                error: function(err){
+                    console.log(err.re)
+                },
+                cache: false,
+                contentType: false,
+                processData: false
+            });
+                
+            });
+    </script>
+</html>

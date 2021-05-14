@@ -4,14 +4,71 @@ from rest_framework.serializers import ModelSerializer, SerializerMethodField
 
 from store.models import Bookmark, Image, Product, Rating, Varian ,Category
 from costumer.api.serializers import StoreproductDetailSerializer
+from utils.compresimg import CompressPost
+
+class Base64ImageField(serializers.ImageField):
+    """
+    A Django REST framework field for handling image-uploads through raw post data.
+    It uses base64 for encoding and decoding the contents of the file.
+
+    Heavily based on
+    https://github.com/tomchristie/django-rest-framework/pull/1268
+
+    Updated for Django REST framework 3.
+    """
+
+    def to_internal_value(self, data):
+        from django.core.files.base import ContentFile
+        import base64
+        import uuid
+
+        # Check if this is a base64 string
+        if isinstance(data, str):
+            # Check if the base64 string is in the "data:" format
+            if 'data:' in data and ';base64,' in data:
+                # Break out the header from the base64 content
+                header, data = data.split(';base64,')
+
+            # Try to decode the file. Return validation error if it fails.
+            try:
+                decoded_file = base64.b64decode(data)
+            except TypeError:
+                self.fail('invalid_image')
+
+            # Generate file name:
+            file_name = str(uuid.uuid4())[:12] # 12 characters are more than enough.
+            # Get the file name extension:
+            file_extension = self.get_file_extension(file_name, decoded_file)
+
+            complete_file_name = "%s.%s" % (file_name, file_extension, )
+
+            data = ContentFile(decoded_file, name=complete_file_name)
+            """ 
+                sebelum upload ke database compress sederhana mengunakan pillow 
+            """
+            data = CompressPost(data)
+
+        return super(Base64ImageField, self).to_internal_value(data)
+
+    def get_file_extension(self, file_name, decoded_file):
+        import imghdr
+
+        extension = imghdr.what(file_name, decoded_file)
+        extension = "jpg" if extension == "jpeg" else extension
+
+        return extension
 
 class CategorySerialiazer(ModelSerializer):
     class Meta:
         model = Category
         fields = ['content']
     
-
 class imageSerializer(ModelSerializer):
+
+    is_thumb = serializers.BooleanField(default=False)
+    image = Base64ImageField(
+        max_length=None, use_url=True,
+    )
     class Meta:
         model = Image
         fields = [
@@ -28,6 +85,16 @@ class VarianCreateSerializer(ModelSerializer):
             'stock',
             'price',
             'image',
+        ]
+class VarianEditSerializer(ModelSerializer):
+    is_active = serializers.BooleanField(default=True)
+    class Meta:
+        model = Varian
+        fields = [
+            'name',
+            'stock',
+            'price',
+            "is_active"
         ]
 
 class VarianSerializer(ModelSerializer):
@@ -59,7 +126,6 @@ class ProductListSerializer(ModelSerializer):
 
     thumb = SerializerMethodField()
     store = SerializerMethodField()
-    price = SerializerMethodField()
 
     class Meta:
         model = Product
@@ -71,17 +137,16 @@ class ProductListSerializer(ModelSerializer):
             'slug',
             'sold',
             'thumb',
-          
+            'price'  
         ]
 
     def get_thumb(self,obj):
         try:
-            imageSerializer(obj.get_thumb()).data
+            qs = imageSerializer(obj.get_thumb())
         except Exception as e :
-            return 
-
-    def get_price(self,obj):
-        return obj.get_price
+            return None
+            
+        return qs.data
     
     def get_store(self,obj):
         return obj.penjual.name
@@ -138,8 +203,8 @@ class ProductDetailSerializer(ModelSerializer):
 class ProductCreateSerializer(ModelSerializer):
     # buat fields costume buat varian, gambar, category dll
     category = serializers.CharField()
-    image = imageSerializer(many=True)
-    varian = VarianCreateSerializer(many=True)
+    image = imageSerializer(many=True,write_only=True)
+    varian = VarianCreateSerializer(many=True,write_only=True)
 
     class Meta:
         model = Product
@@ -153,31 +218,46 @@ class ProductCreateSerializer(ModelSerializer):
         ]
     
     def create(self, validated_data):
-
-        category_data = Category.objects.get_or_create(content=validated_data.pop('category'))
+        # print(validated_data.pop('category'))
+    
+        category_data,created = Category.objects.get_or_create(content=validated_data.pop('category')) # for create new one or use
         
+        """ 
+            pop data exclude product data
+        """
         image_datas = validated_data.pop('image')
         varian_datas = validated_data.pop('varian')
+        
+        product,created_product = Product.objects.get_or_create(category=category_data,**validated_data)
+        
+        # check if already create same title
+        if not created_product:
+            raise serializers.ValidationError({"title": f" you already have title get other title "})
 
-        product = Product.objects.create(category=category_data,**validated_data)
+        # create image table use trick bulk_create for optimaze
+        image = []
+        for i,image_data in enumerate(image_datas):
+            # for create thumb if first image
+            if i == 0:
+                image.append(Image(product=product,image=image_data.get('image'),is_thumb=True))
+            else:
+                image.append(Image(product=product,**image_data))
 
-        image = [Image(product=product.id,**image_data) for image_data in image_datas]
-
-        # varian data / belum jalan
+        # create varian
         for varian in varian_datas:
-            if varian.image:
-                obj_id = Varian.objects.create(name=varian.name ,stock=varian.stock, price=varian.price)
-                image.append(Image(varian=obj_id,**varian.image))
+            varian = dict(varian)
+            obj_id = Varian.objects.create(product=product,name=varian.get('name') ,stock=varian.get('stock'), price=varian.get('price'))
+
+            image.append(Image(varian=obj_id,**varian.get('image')))
 
         # data image
         Image.objects.bulk_create(image)
-        
 
         return product
 
 
 class ProductEditSerializer(ModelSerializer):
-    varian = VarianCreateSerializer(many=True)
+    varian = VarianEditSerializer(many=True)
    
     class Meta:
         model = Product
@@ -185,6 +265,7 @@ class ProductEditSerializer(ModelSerializer):
             'title',
             'desc',
             'varian',
+            
             # masih berpikir buat Edit Varian
         ]
 
@@ -194,41 +275,66 @@ class ProductEditSerializer(ModelSerializer):
     
         instance.title = validated_data.get('title', instance.title)
         instance.desc = validated_data.get('desc', instance.desc)
-
         instance.save()
 
+        """
+            for update except image
+            and user can append varian
+            note "user cant delete but can unactive varian == delete"
+        """
+        
         for v1 in varian_data:
-            vr = varian.pop(0)
-            vr.name = v1.get('name',vr.name)
-            vr.stock = v1.get('stock',vr.stock)
-            vr.price = v1.get('price',vr.price)
-            vr.save()
+            try:
+                vr = varian.pop(0)
+                vr.name = v1.get('name',vr.name)
+                vr.stock = v1.get('stock',vr.stock)
+                vr.price = v1.get('price',vr.price)
+                vr.is_active = v1.get('is_active',vr.is_active)
+                vr.save()
+
+            except IndexError:
+                Varian.objects.create(product=instance,**v1)
+            
 
         return instance
-
-
 
 class RatingCreateSerializers(ModelSerializer):
     class Meta:
         model = Rating
-        feidls = "__all__"
+        fields = "__all__"
 
+    def create(self, validated_data):
+        instance,created = Rating.objects.get_or_create(**validated_data)
+ 
+        if created:
+            return instance
+
+        raise serializers.ValidationError({"message": f"you already rating {instance.rating} this product"})
+
+       
 class RatingEditSerializers(ModelSerializer):
     class Meta:
         model = Rating
-        feidls = ('ulasan','rating')
+        fields = ('ulasan','rating')
+
+    def update(self, instance, validated_data):
+        instance.ulasan = validated_data.get('ulasan',instance.ulasan)
+        instance.rating = validated_data.get('rating',instance.rating)
+        instance.save()
+        return instance
 
 class BookMarkSerializer(ModelSerializer):
     class Meta:
-        model= Bookmark
+        model=  Bookmark
         fields = "__all__"
     
     def create(self, validated_data):
         qs_create,created =  Bookmark.objects.get_or_create(**validated_data)
-
+        
         if created:
             return qs_create
+        
         qs_create.delete()
 
         return validated_data
- 
+

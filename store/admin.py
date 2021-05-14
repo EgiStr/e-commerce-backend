@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 from store.models import (
+                        Bookmark,
                         Category,
                         Product,
                         Image,
@@ -20,9 +21,11 @@ class VarianInline(admin.TabularInline):
         'name',
         'stock',
         'price',
-        'is_active'
+        'is_active',
+      
         
     ]
+
 class RatingInline(admin.TabularInline):
     model = Rating
 
@@ -40,6 +43,7 @@ class ProductAdmin(admin.ModelAdmin):
         'sold',
         'create_at',
         'update',
+        'price'
     )
     
     inlines = [ImageInline,VarianInline,RatingInline]
@@ -50,5 +54,9 @@ class ProductAdmin(admin.ModelAdmin):
     def rating(self,obj):
         return obj.get_rating or 0
 
-    
+@admin.register(Varian)
+class VarianAdmin(admin.ModelAdmin):
+    inlines = [ImageInline]
+
 admin.site.register(Category)
+admin.site.register(Bookmark)
