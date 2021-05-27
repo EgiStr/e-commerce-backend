@@ -1,3 +1,4 @@
+from costumer.models import Store
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from rest_framework.generics import CreateAPIView, GenericAPIView, ListAPIView, ListCreateAPIView,RetrieveUpdateDestroyAPIView
@@ -43,13 +44,17 @@ class ProductApiView(ListCreateAPIView):
     filter_backends = [SearchFilter,OrderingFilter]
     
     ordering_fields = ['price','create_at','sold']
-    search_fields = ['title','category__content']
+    search_fields = ['title','category__content','penjual__name']
 
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return ProductCreateSerializer
         return ProductListSerializer
+    
+    def perform_create(self, serializer):
+        store = Store.objects.get(pemilik=self.request.user)
+        serializer.save(penjual=store)
     
 class productDetailAPiView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthorOrReadonly]

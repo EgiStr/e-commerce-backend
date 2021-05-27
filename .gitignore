@@ -24,6 +24,9 @@ media
 # C extensions
 *.so
 
+# json
+*.json
+
 # Distribution / packaging
 .Python
 build/

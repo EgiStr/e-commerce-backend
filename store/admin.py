@@ -1,12 +1,8 @@
 from django.contrib import admin
 from django.utils.safestring import mark_safe
-from store.models import (
-                        Bookmark,
-                        Category,
-                        Product,
-                        Image,
-                        Varian,
-                        Rating)
+
+from store.models import Bookmark, Category, Image, Product, Rating, Varian
+
 
 class ImageInline(admin.TabularInline):
     model = Image
@@ -60,3 +56,4 @@ class VarianAdmin(admin.ModelAdmin):
 
 admin.site.register(Category)
 admin.site.register(Bookmark)
+admin.site.register(Rating)

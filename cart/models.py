@@ -14,17 +14,20 @@ class Cart(models.Model):
 
     @property
     def get_total_cart(self):
-        return sum(item.quantity for item in self.cart_item.all())
+        return self.cart_item.count()
     
     @property
     def get_total_paid(self):
         return sum(item.total_price for item in self.cart_item.all())
+    
+    def get_cart_item(self):
+        return self.cart_item.all()
 
 class CartItem(models.Model):
     product = models.ForeignKey(Varian, on_delete=models.CASCADE)
     cart = models.ForeignKey('Cart', related_name="cart_item",on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
-    price_ht = models.FloatField(blank=True) # fitur diskon
+    price_ht = models.FloatField(blank=True, null=True) # fitur diskon
 
     # total harga ( bisa ditambah fitur diskon )
     @property
@@ -32,4 +35,4 @@ class CartItem(models.Model):
         return self.product.price * self.quantity
 
     def __str__(self):
-        return " - " + self.product + "cart_item"
+        return " -  " + self.cart.user.username + "  cart_item"

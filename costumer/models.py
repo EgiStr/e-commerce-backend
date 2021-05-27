@@ -118,4 +118,15 @@ class Location(models.Model):
     type = models.CharField(max_length=50,choices=CHOICE)
 
     def __str__(self) -> str:
-        return self.user.username + " address Privacy euy!"
+        try:
+            name = self.user.username + " address Privacy euy!"
+        except Exception as e:
+            name = self.store.name + " address Privacy euy!"
+        return name
+
+class TokenNotif(models.Model):
+    user = models.ForeignKey("CustomUser", related_name="tokens", on_delete=models.CASCADE)
+    token = models.CharField(max_length=255)
+
+    def __str__(self) -> str:
+        return self.user.username + " token"

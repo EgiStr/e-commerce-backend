@@ -6,8 +6,11 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("api/product/", include(('store.api.urls','store.api'),namespace="product")),
     path('api/auth/',include(('costumer.api.urls', 'costumer.api'),namespace="auth")),
+    path("api/product/", include(('store.api.urls','store.api'),namespace="product")),
+    path("api/cart/", include(('cart.api.urls','cart.api'),namespace="cart")),
+    path("api/order/", include(('order.api.urls','order.api'),namespace="order")),
+    
 ]
 
 if settings.DEBUG:

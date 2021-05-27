@@ -5,7 +5,14 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+        <title>Document</title>
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+
+    <!-- TODO: Add SDKs for Firebase products that you want to use
+        https://firebase.google.com/docs/web/setup#available-libraries -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-analytics.js"></script>
+
 </head>
 <body>
     <form name="uploader" method="post" id="form" >
@@ -15,6 +22,23 @@
     </form>
 </body>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script >
+         var firebaseConfig = {
+        apiKey: "AIzaSyAoHiKZD-hGj8rfuK4_iWWJK6KV6qNVX5s",
+        authDomain: "e-commerce-cd481.firebaseapp.com",
+        projectId: "e-commerce-cd481",
+        storageBucket: "e-commerce-cd481.appspot.com",
+        messagingSenderId: "868424335775",
+        appId: "1:868424335775:web:da79c218ad68b83a6f7daa",
+        measurementId: "G-R0ZNQV8FVJ"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
+    const msg = firebase.messaging()
+    msg.requestPermission()
+   
+    </script>
     <script>
         function createFormData(formData, key, data) {
             if (data === Object(data) || Array.isArray(data)) {
@@ -32,9 +56,9 @@
                 data[key].forEach((obj, index) => {
                     let keyList = Object.keys(obj);
                     keyList.forEach((keyItem) => {
-                    let keyName = [key, "[", index, "]", ".", keyItem].join("");
+                        let keyName = [key, "[", index, "]", ".", keyItem].join("");
                     formData.append(keyName, obj[keyItem]);
-                    });
+                });
                 });
                 } else if (typeof data[key] === "object") { 
                 for (let innerKey in data[key]) {

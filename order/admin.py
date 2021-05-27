@@ -18,11 +18,11 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = (
         'user',
         'total_paid',
+        'order_key',
         "order_status"   
     )
     readonly_fields = (
         'total_paid',
-        'order_key',
         'order_status',
         'paid',
         'create_at',
