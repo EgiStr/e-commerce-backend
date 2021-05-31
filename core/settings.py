@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
 ]
-
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -61,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.AuthorizationHeaderMiddleware'
 ]
 
 # cors allow
@@ -74,19 +74,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     'http://127.0.0.1:5500'
 ]
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
+CORS_EXPOSE_HEADERS = ["Content-Type","Set-Cookie"]
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    'http://127.0.0.1:5500'
 ]
-CORS_ALLOW_CREDENTIAL = True
-
 
 ROOT_URLCONF = 'core.urls'
 
@@ -129,8 +123,8 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
@@ -146,7 +140,8 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
    
-    'AUTH_COOKIE': 'jwt',  # Cookie name. Enables cookies if value is set.
+    'AUTH_COOKIE': 'acc',  # Cookie name. Enables cookies if value is set.
+    'AUTH_COOKIE_REF':"ref", # fefresh cookie name
     'AUTH_COOKIE_SECURE': False,    # Whether the auth cookies should be secure (https:// only).
     'AUTH_COOKIE_HTTP_ONLY' : True, # Http only cookie flag.It's not fetch by javascript.
     'AUTH_COOKIE_PATH': '/',        # The path of the auth cookie.

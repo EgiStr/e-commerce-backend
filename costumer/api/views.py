@@ -12,7 +12,7 @@ from rest_framework import status
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
 from rest_framework.views import APIView
-
+from django.middleware.csrf import get_token
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -81,7 +81,7 @@ class ChangePasswordApiView(UpdateAPIView):
                 "message": "Password updated successfully",
             }
 
-            return Response(response,status=status.HTTP_200_OK)
+            return Response(response, status=status.HTTP_200_OK)
         return Response(
             {"password new": ["password new wrong. doesnt macth"]},
             status=status.HTTP_400_BAD_REQUEST,
@@ -104,8 +104,10 @@ class LoginView(APIView):
             if user.is_active:
                 """create token and send http only cookies"""
                 data = get_tokens_for_user(user)
-                tomorrow = datetime.now() + timedelta(days=1)
+                
+                tomorrow = datetime.now() + timedelta(days=7)
                 expires = datetime.strftime(tomorrow, "%a, %d-%b-%Y %H:%M:%S GMT")
+            
                 response.set_cookie(
                     key=settings.SIMPLE_JWT["AUTH_COOKIE"],
                     value=data["access"],
@@ -114,7 +116,15 @@ class LoginView(APIView):
                     httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
                     samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"],
                 )
-                response.data = {"message": " Login successfully ", "data": data}
+                response.set_cookie(
+                    key=settings.SIMPLE_JWT["AUTH_COOKIE_REF"],
+                    value=data["refresh"],
+                    expires=expires,
+                    secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+                    httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
+                    samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"],
+                )
+                response.data = {"message": " Login successfully "}
 
                 return response
             else:
