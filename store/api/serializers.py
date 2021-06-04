@@ -73,19 +73,21 @@ class RatingSerializer(ModelSerializer):
 
 # for order Product -> varian
 class ProductOrderSerializer(ModelSerializer):
-    product_title = SerializerMethodField()
+    title = SerializerMethodField()
     store = SerializerMethodField()
     slug = SerializerMethodField()
+    varian = SerializerMethodField()
+
     thumb = SerializerMethodField()
 
     class Meta:
         model = Varian
         fields = [
             "id",
-            "product_title",
+            "title",
+            "varian",
             "store",
             "thumb",
-            "name",
             "price",
             "slug",
         ]
@@ -98,7 +100,10 @@ class ProductOrderSerializer(ModelSerializer):
 
         return imageSerializer(qs).data
 
-    def get_product_title(self, obj):
+    def get_varian(Self, obj):
+        return obj.name
+
+    def get_title(self, obj):
         return obj.product.title
 
     def get_store(self, obj):

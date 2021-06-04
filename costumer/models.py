@@ -85,7 +85,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 class Store(models.Model):
     phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$', message="Phone number must be entered in the format: '+999999999 / 08++'. Up to 15 digits allowed.")
   
-    pemilik = models.OneToOneField(CustomUser,on_delete=models.CASCADE) 
+    pemilik = models.OneToOneField(CustomUser,related_name="store",on_delete=models.CASCADE) 
     name = models.CharField(_("name your store"), max_length=70 , unique=True)
     phone = models.CharField(validators=[phone_regex], max_length=17) # validators should be a list
     about = models.TextField(_(" desc about your store ") , max_length=600, blank=True, null=True)

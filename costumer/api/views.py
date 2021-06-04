@@ -1,5 +1,8 @@
 from rest_framework.generics import (
     CreateAPIView,
+    ListAPIView,
+    ListCreateAPIView,
+    RetrieveAPIView,
     RetrieveUpdateDestroyAPIView,
     UpdateAPIView,
 )
@@ -21,6 +24,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .permission import isAuthor
 from .serializers import (
     ChangePasswordSerializer,
+    WhoamiSerializer,
     registeruser,
     UserDetailSerilaizer,
     UserEditProfilSerializer,
@@ -233,3 +237,14 @@ class DashbordView(UpdateModelMixin, APIView):
 
 class StoreDashboard(RetrieveUpdateDestroyAPIView):
     pass
+
+class WhoamiApiView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    
+    def get_queryset(self):
+        return User.objects.get(id=self.request.user.id)
+
+    def get(self,request,*args, **kwargs):
+        data = WhoamiSerializer(self.get_queryset()).data
+        return Response(data)

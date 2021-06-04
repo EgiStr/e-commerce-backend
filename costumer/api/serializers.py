@@ -95,7 +95,26 @@ class UserDetailSerilaizer(ModelSerializer):
     def get_order_history(self, obj):
         return OrderSeriliazer(obj.get_order_history(), many=True).data
 
+class WhoamiSerializer(ModelSerializer):
+    store = SerializerMethodField()
+    location = SerializerMethodField()
+    class Meta:
+        model = User
+        fields = ["id","email", "username", "profile", "phone", "location", "store","date_joined"]
+    
+    def get_store(self,obj):
+        try:
 
+            return obj.store.name
+        except Exception:
+            return None
+    def get_location(self, obj):
+        qs = obj.get_location()
+        try:
+            return LocationSerializer(qs, many=True).data
+        except Exception:
+            return LocationSerializer(qs).data
+    
 class UserEditProfilSerializer(ModelSerializer):
     profile = Base64ImageField(
         max_length=None,
@@ -110,6 +129,7 @@ class UserEditProfilSerializer(ModelSerializer):
             "phone",
         ]
 
+# class StoreDetailSerializers()
 
 class StoreproductDetailSerializer(ModelSerializer):
     location = SerializerMethodField()

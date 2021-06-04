@@ -8,13 +8,15 @@ from .views import (
     RefreshTokenView,
     RegisterUserApiView,
     ChangePasswordApiView,
-    StoreDashboard)
+    StoreDashboard,
+    WhoamiApiView)
 
 from store.api.views import BookMarkUserApiView
 
 urlpatterns = [
     # user detail
     path('',DashbordView.as_view(),name="dashboard"),
+    path("whoiam/", WhoamiApiView.as_view(), name="whoami"),
     path('store/',StoreDashboard.as_view(),name="store-dashboard"),
     path("bookmark/", BookMarkUserApiView.as_view(), name="bookmark"),
     
