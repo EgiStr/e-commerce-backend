@@ -19,7 +19,10 @@ class CartItemCreateSerializer(ModelSerializer):
 
     def create(self, validated_data):
         quantity = validated_data.pop("quantity")
-        cartItem, created = CartItem.objects.get_or_create(quantity=quantity,**validated_data)   
+        print(validated_data)
+        cartItem, created = CartItem.objects.get_or_create(**validated_data)   
+        cartItem.quantity = quantity
+        cartItem.save()
         varian_product=cartItem.product
      
         # validate stock if  quantity beyond stock
