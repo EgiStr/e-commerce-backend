@@ -1,5 +1,7 @@
+from costumer.models import Store
 from rest_framework.generics import (
     CreateAPIView,
+    GenericAPIView,
     ListAPIView,
     ListCreateAPIView,
     RetrieveAPIView,
@@ -21,9 +23,10 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
-from .permission import isAuthor
+from .permission import isAuthor, isOwner
 from .serializers import (
     ChangePasswordSerializer,
+    StoreDetailSerializers,
     WhoamiSerializer,
     registeruser,
     UserDetailSerilaizer,
@@ -108,10 +111,10 @@ class LoginView(APIView):
             if user.is_active:
                 """create token and send http only cookies"""
                 data = get_tokens_for_user(user)
-                
+
                 tomorrow = datetime.now() + timedelta(days=7)
                 expires = datetime.strftime(tomorrow, "%a, %d-%b-%Y %H:%M:%S GMT")
-            
+
                 response.set_cookie(
                     key=settings.SIMPLE_JWT["AUTH_COOKIE"],
                     value=data["access"],
@@ -177,6 +180,7 @@ class LogoutView(APIView):
         """remove http only"""
         response = Response()
         response.delete_cookie(settings.SIMPLE_JWT["AUTH_COOKIE"])
+        response.delete_cookie(settings.SIMPLE_JWT["AUTH_COOKIE_REF"])
         response.data = {"Messege": "logout Success"}
         response.status_code = status.HTTP_200_OK
         return response
@@ -216,6 +220,7 @@ class DashbordView(UpdateModelMixin, APIView):
 
         response = Response()
         response.delete_cookie(settings.SIMPLE_JWT["AUTH_COOKIE"])
+        response.delete_cookie(settings.SIMPLE_JWT["AUTH_COOKIE_REF"])
         response.data = {
             "message": f"success Remove user {user.email}, GoobBye Friends "
         }
@@ -235,16 +240,24 @@ class DashbordView(UpdateModelMixin, APIView):
         return Response(data.data)
 
 
-class StoreDashboard(RetrieveUpdateDestroyAPIView):
-    pass
+class StoreDashboardApiView(GenericAPIView):
+    permission_classes = [IsAuthenticated, isOwner]
+    serializer_class = StoreDetailSerializers
+
+    def get_queryset(self):
+        return Store.objects.get(pemilik=self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset())
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
 
 class WhoamiApiView(APIView):
     permission_classes = [IsAuthenticated]
 
-    
     def get_queryset(self):
         return User.objects.get(id=self.request.user.id)
 
-    def get(self,request,*args, **kwargs):
+    def get(self, request, *args, **kwargs):
         data = WhoamiSerializer(self.get_queryset()).data
         return Response(data)

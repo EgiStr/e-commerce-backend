@@ -19,16 +19,15 @@ class CartApiView(CreateModelMixin, GenericAPIView):
         return CartListSerializer
 
     def get_queryset(self):
-        qs = Cart.objects.get(user=self.request.user)
-        return qs
+        return Cart.objects.get(user=self.request.user)
 
     def get(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_queryset())
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
-    
+
     def perform_create(self, serializer):
         cart = Cart.objects.get(user=self.request.user)
         serializer.save(cart=cart)
@@ -38,7 +37,9 @@ class CartDeleteApiView(DestroyAPIView):
     permission_classes = [IsAuthenticated, IsCartAuth]
 
     def get_queryset(self):
-        return CartItem.objects.get(product__id=self.kwargs["pk"],cart__user=self.request.user)
+        return CartItem.objects.get(
+            product__id=self.kwargs["pk"], cart__user=self.request.user
+        )
 
     def get_object(self):
         return self.get_queryset()
