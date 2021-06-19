@@ -19,7 +19,6 @@ class CartItemCreateSerializer(ModelSerializer):
 
     def create(self, validated_data):
         quantity = validated_data.pop("quantity")
-        print(validated_data)
         cartItem, created = CartItem.objects.get_or_create(**validated_data)   
         cartItem.quantity = quantity
         cartItem.save()
@@ -51,22 +50,12 @@ class CartItemSerializer(ModelSerializer):
 
 class CartListSerializer(ModelSerializer):
     items = SerializerMethodField()
-    total_paid = SerializerMethodField()
-    total_cart = SerializerMethodField()
 
     class Meta:
         model = Cart
         fields = [
-            "total_paid",
-            "total_cart",
             "items",
         ]
 
     def get_items(self, obj):
         return CartItemSerializer(obj.get_cart_item(), many=True).data
-
-    def get_total_paid(self, obj):
-        return obj.get_total_paid
-
-    def get_total_cart(self, obj):
-        return obj.get_total_cart

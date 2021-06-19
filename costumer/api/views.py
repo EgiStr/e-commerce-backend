@@ -192,7 +192,7 @@ class RegisterUserApiView(CreateAPIView):
     permission_classes = [AllowAny]
 
 
-class DashbordView(UpdateModelMixin, APIView):
+class DashbordView(UpdateModelMixin, GenericAPIView):
 
     permission_classes = [isAuthor, IsAuthenticated]
 
@@ -228,16 +228,7 @@ class DashbordView(UpdateModelMixin, APIView):
         return response
 
     def put(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer_class()
-        data = serializer(instance, data=request.data)
-        try:
-            data.is_valid(raise_exception=True)
-        except Exception as e:
-            Response({"message": "data invalid !"}, status=status.HTTP_400_BAD_REQUEST)
-
-        self.perform_update(data)
-        return Response(data.data)
+        return self.update(request,*args, **kwargs)
 
 
 class StoreDashboardApiView(GenericAPIView):

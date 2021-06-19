@@ -95,6 +95,9 @@ class ProductOrderSerializer(ModelSerializer):
     def get_thumb(self, obj):
         try:
             qs = obj.get_image_varian()
+            if qs == None:
+                qs = obj.product.get_thumb()
+
         except Exception as e:
             qs = obj.product.get_thumb()
 
@@ -147,6 +150,7 @@ class ProductDetailSerializer(ModelSerializer):
         model = Product
         fields = [
             "store",
+            "slug",
             "penjual",
             "category",
             "title",
@@ -324,7 +328,7 @@ class RatingEditSerializers(ModelSerializer):
 class BookMarkSerializer(ModelSerializer):
     class Meta:
         model = Bookmark
-        fields = "__all__"
+        fields = ['product']
 
     def create(self, validated_data):
         qs_create, created = Bookmark.objects.get_or_create(**validated_data)

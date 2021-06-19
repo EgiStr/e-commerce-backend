@@ -69,11 +69,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 class LocationSerializer(ModelSerializer):
     class Meta:
         model = Location
-        fields = [
-            "geolocation",
-            "city",
-            "address",
-        ]
+        fields = ['id',"name", "phone", "city", "address", "other", "name_location", "type"]
 
 
 class UserDetailSerilaizer(ModelSerializer):
@@ -129,24 +125,25 @@ class WhoamiSerializer(ModelSerializer):
 
 class UserEditProfilSerializer(ModelSerializer):
     profile = Base64ImageField(
-        max_length=None,
-        use_url=True,
+        required=False, max_length=None, allow_empty_file=True, use_url=True
     )
 
     class Meta:
         model = User
-        fields = [
-            "username",
-            "profile",
-            "phone",
-        ]
+        fields = ["username", "profile", "phone", "email"]
+
+    def update(self, instance, validated_data):
+        instance.username = validated_data.get("username", instance.username)
+        instance.phone = validated_data.get("phone", instance.phone)
+        instance.profile = validated_data.get("profile", instance.profile)
+        instance.save()
+        return instance
 
 
 class StoreDetailSerializers(ModelSerializer):
     class Meta:
         model = Store
         fields = "__all__"
-
 
 
 class StoreproductDetailSerializer(ModelSerializer):

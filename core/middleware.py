@@ -46,18 +46,16 @@ class AuthorizationHeaderMiddleware:
                 try:
                     serializer.is_valid(raise_exception=True)
                 except TokenError as e:
-                    # Code that is executed in each request after the view is called
+                    # Code that is executed in each request after the view is 
                     return response
                 
                 """ send http only cookies """
                 data = serializer._validated_data
 
-                tomorrow = datetime.now() + timedelta(days=10)
-                expires = datetime.strftime(tomorrow, "%a, %d-%b-%Y %H:%M:%S GMT")
                 response.set_cookie(
                     key=settings.SIMPLE_JWT["AUTH_COOKIE"],
                     value=data["access"],
-                    expires=expires,
+                    expires=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"],
                     secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
                     httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
                     samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"],
@@ -65,7 +63,7 @@ class AuthorizationHeaderMiddleware:
                 response.set_cookie(
                     key=settings.SIMPLE_JWT["AUTH_COOKIE_REF"],
                     value=data["refresh"],
-                    expires=expires,
+                    expires=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"],
                     secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
                     httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
                     samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"],

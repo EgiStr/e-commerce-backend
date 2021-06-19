@@ -89,6 +89,9 @@ class BookMarkUserApiView(ListCreateAPIView):
         qs = Bookmark.objects.filter(user = self.get_user_auth())
         qs = [q.product for q in qs ]
         return qs
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class RatingCreateApiView(CreateAPIView):
     
