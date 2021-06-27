@@ -125,9 +125,10 @@ class Rating(models.Model):
         Product, related_name="rating", on_delete=models.CASCADE
     )
     rating = models.PositiveIntegerField(
-        _(" rating"), validators=[MinValueValidator(1), MaxValueValidator(10)]
+        _(" rating"), validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
-    ulasan = models.TextField(_(" review"), max_length=200)
+    ulasan = models.TextField(_(" review"), max_length=300)
+    create_at = models.DateTimeField(auto_now=False, auto_now_add=True)
 
     def __str__(self):
         return self.product.title

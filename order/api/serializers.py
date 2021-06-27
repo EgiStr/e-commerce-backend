@@ -53,25 +53,17 @@ class OrderitemEditSerializer(ModelSerializer):
 
 class OrderItemSerialiazer(ModelSerializer):
 
-    product_detail = SerializerMethodField()
-    total_item = SerializerMethodField()
+    product = ProductOrderSerializer()
 
     class Meta:
         model = OrderItem
-        fields = "__all__"
-
-    def get_product_detail(self, obj):
-        return ProductOrderSerializer(obj.product).data
-
-    def get_total_item(self, obj):
-        return obj.get_total_price
-
-
+        fields = ['id','product','quantity']
+    
 class OrderSeriliazer(ModelSerializer):
 
     total_paid = SerializerMethodField()
     total_item = SerializerMethodField()
-    order_item = SerializerMethodField()
+    order_item = OrderItemSerialiazer(many=True)
 
     class Meta:
         model = Order
@@ -90,10 +82,7 @@ class OrderSeriliazer(ModelSerializer):
     def get_total_item(self, obj):
         return obj.get_total_item
 
-    def get_order_item(self, obj):
-        return OrderItemSerialiazer(obj.get_order_item().first()).data
-
-
+  
 class OrderCreateSeriliazer(ModelSerializer):
     order_item = OrderitemEditSerializer(many=True)
 

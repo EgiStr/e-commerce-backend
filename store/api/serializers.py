@@ -66,18 +66,34 @@ class VarianSerializer(ModelSerializer):
 
 
 class RatingSerializer(ModelSerializer):
+    username = SerializerMethodField()
+    profile = SerializerMethodField()
+
     class Meta:
         model = Rating
-        fields = ["rating", "ulasan"]
+        fields = [
+            "username",
+            "profile",
+            "create_at",
+            "rating",
+            "ulasan",
+        ]
 
+    def get_username(self, obj):
+        return obj.user.username
 
+    def get_profile(self, obj):
+        profile = obj.user.profile 
+        if profile.name != "":
+            return f"media/{profile.name}"      
+        return None
+        
 # for order Product -> varian
 class ProductOrderSerializer(ModelSerializer):
     title = SerializerMethodField()
     store = SerializerMethodField()
     slug = SerializerMethodField()
     varian = SerializerMethodField()
-
     thumb = SerializerMethodField()
 
     class Meta:
@@ -177,7 +193,7 @@ class ProductDetailSerializer(ModelSerializer):
         return obj.get_rating_avg
 
     def get_rating(self, obj):
-        qs = obj.get_rating()
+        qs = obj.get_rating()[:10]
         return RatingSerializer(qs, many=True).data
 
     def get_varian(self, obj):
@@ -328,7 +344,7 @@ class RatingEditSerializers(ModelSerializer):
 class BookMarkSerializer(ModelSerializer):
     class Meta:
         model = Bookmark
-        fields = ['product']
+        fields = ["product"]
 
     def create(self, validated_data):
         qs_create, created = Bookmark.objects.get_or_create(**validated_data)

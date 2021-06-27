@@ -69,8 +69,67 @@ class ChangePasswordSerializer(serializers.Serializer):
 class LocationSerializer(ModelSerializer):
     class Meta:
         model = Location
-        fields = ['id',"name", "phone", "city", "address", "other", "name_location", "type"]
+        fields = [
+            "id",
+            "name",
+            "phone",
+            "city",
+            "address",
+            "other",
+            "name_location",
+            "type",
+        ]
 
+
+class LocationCreateSerializer(ModelSerializer):
+    type = serializers.CharField(required=False)
+
+    class Meta:
+        model = Location
+        fields = [
+            "id",
+            "name",
+            "phone",
+            "city",
+            "address",
+            "other",
+            "name_location",
+            "store",
+            "user",
+            "type",
+        ]
+
+    def create(self, validated_data):
+        user = validated_data.pop("user", None)
+        store = validated_data.pop("store", None)
+        if not user and store:
+            raise serializers.ValidationError({"error": "error input"})
+        if user:
+            location = Location.objects.get_or_create(
+                user=user, type="costumer", **validated_data
+            )
+        if store:
+            location = Location.objects.get_or_create(
+                store=store, type="store", **validated_data
+            )
+
+        return location[0]
+
+
+class LocationEditSerializer(ModelSerializer):
+    class Meta:
+        model = Location
+        fields = ["name", "phone", "city", "address", "other", "name_location"]
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get("name",instance.name)
+        instance.phone = validated_data.get("phone",instance.phone)
+        instance.city = validated_data.get("city",instance.city)
+        instance.address = validated_data.get("address",instance.address)
+        instance.other = validated_data.get("other",instance.other)
+        instance.name_location = validated_data.get("name_location",instance.name_location)
+        instance.save()
+        return instance
 
 class UserDetailSerilaizer(ModelSerializer):
     location = SerializerMethodField()

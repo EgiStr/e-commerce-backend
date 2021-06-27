@@ -1,4 +1,4 @@
-from costumer.models import Store
+from costumer.models import Location, Store
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
@@ -26,6 +26,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .permission import isAuthor, isOwner
 from .serializers import (
     ChangePasswordSerializer,
+    LocationCreateSerializer,
+    LocationEditSerializer,
+    LocationSerializer,
     StoreDetailSerializers,
     WhoamiSerializer,
     registeruser,
@@ -228,7 +231,7 @@ class DashbordView(UpdateModelMixin, GenericAPIView):
         return response
 
     def put(self, request, *args, **kwargs):
-        return self.update(request,*args, **kwargs)
+        return self.update(request, *args, **kwargs)
 
 
 class StoreDashboardApiView(GenericAPIView):
@@ -252,3 +255,25 @@ class WhoamiApiView(APIView):
     def get(self, request, *args, **kwargs):
         data = WhoamiSerializer(self.get_queryset()).data
         return Response(data)
+
+
+class LocationApiView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method != "GET":
+            return LocationCreateSerializer
+        return LocationSerializer
+
+    def get_queryset(self):
+        return Location.objects.filter(user=self.request.user)
+
+
+class LocationDatailApiView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Location.objects.all()
+    def get_serializer_class(self):
+        if self.request.method != "GET":
+            return LocationEditSerializer
+        return LocationSerializer
+    
