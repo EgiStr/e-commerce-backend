@@ -1,4 +1,4 @@
-from costumer.models import Location, Store
+from costumer.models import Location, Store, TokenNotif
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from order.api.serializers import OrderSeriliazer
@@ -8,6 +8,22 @@ from rest_framework.validators import UniqueValidator
 from utils.serializers import Base64ImageField
 
 User = get_user_model()
+
+
+class UserNotifSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["username", "profile", "phone"]
+
+
+class TokenSerializer(ModelSerializer):
+    class Meta:
+        model = TokenNotif
+        fields = ['token']
+
+    def create(self, validated_data):
+        token = TokenNotif.objects.create(**validated_data)
+        return token
 
 
 class registeruser(ModelSerializer):
@@ -122,14 +138,17 @@ class LocationEditSerializer(ModelSerializer):
         fields = ["name", "phone", "city", "address", "other", "name_location"]
 
     def update(self, instance, validated_data):
-        instance.name = validated_data.get("name",instance.name)
-        instance.phone = validated_data.get("phone",instance.phone)
-        instance.city = validated_data.get("city",instance.city)
-        instance.address = validated_data.get("address",instance.address)
-        instance.other = validated_data.get("other",instance.other)
-        instance.name_location = validated_data.get("name_location",instance.name_location)
+        instance.name = validated_data.get("name", instance.name)
+        instance.phone = validated_data.get("phone", instance.phone)
+        instance.city = validated_data.get("city", instance.city)
+        instance.address = validated_data.get("address", instance.address)
+        instance.other = validated_data.get("other", instance.other)
+        instance.name_location = validated_data.get(
+            "name_location", instance.name_location
+        )
         instance.save()
         return instance
+
 
 class UserDetailSerilaizer(ModelSerializer):
     location = SerializerMethodField()
@@ -154,6 +173,7 @@ class UserDetailSerilaizer(ModelSerializer):
 class WhoamiSerializer(ModelSerializer):
     store = SerializerMethodField()
     location = SerializerMethodField()
+    tokens = TokenSerializer(many=True)
 
     class Meta:
         model = User
@@ -166,6 +186,7 @@ class WhoamiSerializer(ModelSerializer):
             "location",
             "store",
             "date_joined",
+            "tokens",
         ]
 
     def get_store(self, obj):

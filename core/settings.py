@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'costumer',
     'order',
     'store',
+    'notification',
 
     # external app
     'rest_framework',

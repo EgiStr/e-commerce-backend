@@ -1,4 +1,4 @@
-from costumer.models import Location, Store
+from costumer.models import Location, Store, TokenNotif
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
@@ -30,6 +30,7 @@ from .serializers import (
     LocationEditSerializer,
     LocationSerializer,
     StoreDetailSerializers,
+    TokenSerializer,
     WhoamiSerializer,
     registeruser,
     UserDetailSerilaizer,
@@ -257,6 +258,17 @@ class WhoamiApiView(APIView):
         return Response(data)
 
 
+class TokenApiView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TokenSerializer
+
+    def get_queryset(self):
+        return TokenNotif.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
 class LocationApiView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
@@ -272,8 +284,8 @@ class LocationApiView(ListCreateAPIView):
 class LocationDatailApiView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Location.objects.all()
+
     def get_serializer_class(self):
         if self.request.method != "GET":
             return LocationEditSerializer
         return LocationSerializer
-    

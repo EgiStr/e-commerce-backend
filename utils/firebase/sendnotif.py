@@ -81,4 +81,8 @@ def send_notif_multiple(registration_tokens=[],data={},title="Notification Order
     # for the contents of response.
     return '{0} messages were sent successfully'.format(response.success_count)
 
-registerToken = "eIYZeTUS0YncJVtrh0TF4C:APA91bHIQgQ6TKxHrhBoC3MXWSxMG3XjTTgNedrw5Iyhu13GE9uX_mf8eyb5KoX3XQvAChcZWMxj4s99otq6jxjB1OJjZu4vQ1_4-FLDhgdMm3aZQVPfHSWhKRuPRX8INpnCG7EphLZ-"
+registerToken = "e6fbXG_-83l0y5_9ou66Z4:APA91bGycj1u9Vw37X_t5fOOXCoox8xqT5FHEIZoF5ogv9aQ74rg-NawqkNPappsuWSHgdOBwai-r8or8P-CD4teFKmxRY7zclITtlbb4j-69k_X5MaxzVV17mD-au6ZZZLFmQTT0oDa"
+
+
+if __name__ == "__main__":
+    send_notif_device(registration_token=registerToken)
