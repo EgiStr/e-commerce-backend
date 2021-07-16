@@ -12,6 +12,8 @@ from .views import (
     StoreDashboardApiView,
     WhoamiApiView,
     TokenApiView,
+    ProvinceIndoApiView,
+    PostCodeIndoApiView
 )
 
 from store.api.views import BookMarkUserApiView
@@ -25,6 +27,9 @@ urlpatterns = [
     path("bookmark/", BookMarkUserApiView.as_view(), name="bookmark"),
     path("location/", LocationApiView.as_view(), name="location"),
     path("location/<int:pk>/", LocationDatailApiView.as_view(), name="location-detail"),
+    path("location/province/", ProvinceIndoApiView.as_view(), name="province-indonesia"),
+    path("location/province/post-code/", PostCodeIndoApiView.as_view(), name="post-code-indonesia"),
+    
     
     # auth system router
     path("change-password/", ChangePasswordApiView.as_view(), name="change-password"),

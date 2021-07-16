@@ -1,11 +1,11 @@
 from django.contrib import admin
 
 # Register your models here.
-from costumer.models import CustomUser,Store,Location
+from costumer.models import CustomUser,Store,Location,TokenNotif
 
 
 
-
+admin.site.register(TokenNotif)
 class StoreInline(admin.TabularInline):
     model = Store
 

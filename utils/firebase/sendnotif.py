@@ -1,88 +1,86 @@
-from firebase_admin import messaging,initialize_app,credentials
+from firebase_admin import messaging, initialize_app, credentials
 import os
-import datetime 
+import datetime
 
 # create firebase project in console.firebase and generated key for admin
-cred = credentials.Certificate(os.path.join(os.path.dirname(__file__), 'e-commerce-cd481-firebase-adminsdk-y3v6v-011fab9e1d.json'))
+cred = credentials.Certificate(
+    os.path.join(
+        os.path.dirname(__file__),
+        "firebaseSdk.json",
+    )
+)
 
-firebase = initialize_app(cred,name="e-commerce")
+firebase = initialize_app(cred, name="e-commerce")
 
 
-def send_notif_device(registration_token="",data={},title="Notification Order",body="hey you, you have some order"):
+def send_notif_device(
+    registration_token="",
+    data={},
+    title="Notification Order",
+    body="hey you, you have some order",
+):
     if registration_token == "":
-        return 
+        return
     message = messaging.Message(
         data=data,
         token=registration_token,
-    
         # notification body
-        notification=messaging.Notification(
-            title=title,
-            body=body
-        ),
-
+        notification=messaging.Notification(title=title, body=body),
         # android notification
         android=messaging.AndroidConfig(
             ttl=datetime.timedelta(seconds=3600),
             notification=messaging.AndroidNotification(
-                color='#f45342',
-                title=title,
-                body=body
-            )
+                color="#f45342", title=title, body=body
+            ),
         ),
-        
         # apns
         apns=messaging.APNSConfig(
-        payload=messaging.APNSPayload(
-            aps=messaging.Aps(badge=42),
+            payload=messaging.APNSPayload(
+                aps=messaging.Aps(badge=42),
+            ),
         ),
-    ),
     )
 
-    response = messaging.send(message,app=firebase)
-    
+    response = messaging.send(message, app=firebase)
+
     return response
 
-def send_notif_multiple(registration_tokens=[],data={},title="Notification Order",body="hey you, you have some order "):
+
+def send_notif_multiple(
+    registration_tokens=[],
+    data={},
+    title="Notification Order",
+    body="hey you, you have some order ",
+):
     if len(registration_tokens) == 0:
-        return 
-    
+        return
+
     message = messaging.MulticastMessage(
         # for id user divice
         tokens=registration_tokens,
         # for data payload
         data=data,
-
         # notification body
-        notification=messaging.Notification(
-            title=title,
-            body=body
-        ),
-
+        notification=messaging.Notification(title=title, body=body),
         # android notification
         android=messaging.AndroidConfig(
             ttl=datetime.timedelta(seconds=3600),
             notification=messaging.AndroidNotification(
-                title=title,
-                body=body,
-                color='#f45342'
-            )
+                title=title, body=body, color="#f45342"
+            ),
         ),
-
         # apns
         apns=messaging.APNSConfig(
-        payload=messaging.APNSPayload(
-            aps=messaging.Aps(badge=42),
+            payload=messaging.APNSPayload(
+                aps=messaging.Aps(badge=42),
+            ),
         ),
-    ),
     )
-    response = messaging.send_multicast(message,app=firebase)
+    response = messaging.send_multicast(message, app=firebase)
     # See the BatchResponse reference documentation
     # for the contents of response.
-    return '{0} messages were sent successfully'.format(response.success_count)
-
-registerToken = "e6fbXG_-83l0y5_9ou66Z4:APA91bGycj1u9Vw37X_t5fOOXCoox8xqT5FHEIZoF5ogv9aQ74rg-NawqkNPappsuWSHgdOBwai-r8or8P-CD4teFKmxRY7zclITtlbb4j-69k_X5MaxzVV17mD-au6ZZZLFmQTT0oDa"
+    return "{0} messages were sent successfully".format(response.success_count)
 
 
-if __name__ == "__main__":
-    send_notif_device(registration_token=registerToken)
+registerToken = ["e6fbXG_-83l0y5_9ou66Z4:APA91bF91P4A_DtD-ARJP9K71q0VV4kTfS6sCEovI0IOtvmb4i7p9RRXBnAqA6jt6cIXdyvek4-4xdhOGSDwFfGh6NR5asGpRyT4wh7mjPdD0LYcPXDxNDbLovqr2xIzooShI9DXIJQE"]
+

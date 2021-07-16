@@ -1,13 +1,15 @@
+from utils.rawQuery import dictfetchall
 from costumer.models import Location, Store, TokenNotif
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
-    ListAPIView,
     ListCreateAPIView,
-    RetrieveAPIView,
     RetrieveUpdateDestroyAPIView,
     UpdateAPIView,
 )
+
+from django.db import connections
+
 from datetime import datetime, timedelta
 from rest_framework.mixins import UpdateModelMixin
 from rest_framework.response import Response
@@ -32,12 +34,15 @@ from .serializers import (
     StoreDetailSerializers,
     TokenSerializer,
     WhoamiSerializer,
+    postCodeSerilaizer,
+    provinceSerializer,
     registeruser,
     UserDetailSerilaizer,
     UserEditProfilSerializer,
 )
 
 User = get_user_model()
+
 
 """ create jwt token manualy """
 
@@ -289,3 +294,68 @@ class LocationDatailApiView(RetrieveUpdateDestroyAPIView):
         if self.request.method != "GET":
             return LocationEditSerializer
         return LocationSerializer
+
+
+class LocationDatailApiView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Location.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.method != "GET":
+            return LocationEditSerializer
+        return LocationSerializer
+
+
+class ProvinceIndoApiView(APIView):
+    __db = connections["provinces"].cursor()
+    queryset = None
+
+    def execSql(self,query):
+        cursor = self.__db
+        # Data modifying operation - commit required
+        cursor.execute(query)
+        return cursor
+
+    def get(self, request, *args, **kwargs):
+        query = f'SELECT id, province_code, province_name FROM db_province_data WHERE province_name LIKE "%{request.GET.get("q","")}%" ;'
+        data = dictfetchall(self.execSql(query))
+
+        return Response(data)
+
+
+class PostCodeIndoApiView(APIView):
+    
+    __db = connections["provinces"].cursor()
+    queryset = None
+
+    def execSql(self,query):
+        cursor = self.__db
+        # Daa modifying operation - commit required
+        cursor.execute(query)
+        return cursor
+
+    def get(self,request,*args, **kwargs):
+        query = 'SELECT DISTINCT sub_district,city,postal_code FROM db_postal_code_data '
+
+        province = request.GET.get('province',False)
+        city = request.GET.get("city",False)
+        sub_district = request.GET.get('kec',False)
+
+        if province:
+            query += f'WHERE province_code={province} '
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if not city and not sub_district:
+            query = f'SELECT DISTINCT city FROM db_postal_code_data WHERE province_code={province} '
+            query = f'{query} ORDER BY city'
+
+        if city and not sub_district:
+            query = f'SELECT DISTINCT sub_district FROM db_postal_code_data WHERE province_code={province} AND city LIKE "%{city}%" ORDER BY sub_district '
+          
+        if sub_district :
+            query += f'AND city LIKE "%{city}%" AND sub_district LIKE "%{sub_district}%" ORDER BY postal_code '
+
+        data = dictfetchall(self.execSql(query))
+
+        return Response(data)

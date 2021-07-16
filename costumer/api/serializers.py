@@ -22,7 +22,7 @@ class TokenSerializer(ModelSerializer):
         fields = ['token']
 
     def create(self, validated_data):
-        token = TokenNotif.objects.create(**validated_data)
+        token = TokenNotif.objects.get_or_create(**validated_data)
         return token
 
 
@@ -80,6 +80,18 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True, validators=[validate_password])
 
     new_password2 = serializers.CharField(required=True)
+
+class provinceSerializer(serializers.Serializer):
+    id =serializers.IntegerField()
+    province_code = serializers.CharField()
+    province_name = serializers.CharField()
+
+class postCodeSerilaizer(serializers.Serializer):
+    urban = serializers.CharField()
+    sub_district = serializers.CharField()
+    city = serializers.CharField()
+    province_code = serializers.IntegerField()
+    postal_code  = serializers.IntegerField()
 
 
 class LocationSerializer(ModelSerializer):

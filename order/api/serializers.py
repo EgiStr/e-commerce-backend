@@ -57,8 +57,9 @@ class OrderItemSerialiazer(ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ['id','product','quantity']
-    
+        fields = ["id", "product", "quantity"]
+
+
 class OrderSeriliazer(ModelSerializer):
 
     total_paid = SerializerMethodField()
@@ -82,20 +83,22 @@ class OrderSeriliazer(ModelSerializer):
     def get_total_item(self, obj):
         return obj.get_total_item
 
-  
+
 class OrderCreateSeriliazer(ModelSerializer):
     order_item = OrderitemEditSerializer(many=True)
 
     class Meta:
         model = Order
         # fields = ['order_items']
-        fields = ["id", "order_key", "order_item", "location"]
+        fields = ["id", "order_item", "location"]
 
     def create(self, validated_data):
         order_items = validated_data.pop("order_item")
 
         with transaction.atomic():
-            order = Order.objects.create(**validated_data)
+            order = Order.objects.create(
+                **validated_data, order_key=str(uuid.uuid4())[:12]
+            )
 
             order_item = []
             for item in order_items:
