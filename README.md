@@ -26,7 +26,7 @@ pip install -r  requirements.txt
 ```
 
 create projects in firebase for activate push notification :
-  download admin sdk in dashboard with format .json
+download admin sdk in dashboard with format .json
 place sdk in `root/utils/firebase`
 and rename with firebaseSdk.json
 

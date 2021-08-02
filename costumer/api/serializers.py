@@ -1,3 +1,4 @@
+from store.api.serializers import StoreSerializer
 from costumer.models import Location, Store, TokenNotif
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -19,7 +20,7 @@ class UserNotifSerializer(ModelSerializer):
 class TokenSerializer(ModelSerializer):
     class Meta:
         model = TokenNotif
-        fields = ['token']
+        fields = ["token"]
 
     def create(self, validated_data):
         token = TokenNotif.objects.get_or_create(**validated_data)
@@ -81,17 +82,6 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     new_password2 = serializers.CharField(required=True)
 
-class provinceSerializer(serializers.Serializer):
-    id =serializers.IntegerField()
-    province_code = serializers.CharField()
-    province_name = serializers.CharField()
-
-class postCodeSerilaizer(serializers.Serializer):
-    urban = serializers.CharField()
-    sub_district = serializers.CharField()
-    city = serializers.CharField()
-    province_code = serializers.IntegerField()
-    postal_code  = serializers.IntegerField()
 
 
 class LocationSerializer(ModelSerializer):
@@ -102,7 +92,9 @@ class LocationSerializer(ModelSerializer):
             "name",
             "phone",
             "city",
+            "city_id",
             "address",
+            "postal_code",
             "other",
             "name_location",
             "type",
@@ -119,6 +111,8 @@ class LocationCreateSerializer(ModelSerializer):
             "name",
             "phone",
             "city",
+            "city_id",
+            "postal_code",
             "address",
             "other",
             "name_location",
@@ -147,14 +141,25 @@ class LocationCreateSerializer(ModelSerializer):
 class LocationEditSerializer(ModelSerializer):
     class Meta:
         model = Location
-        fields = ["name", "phone", "city", "address", "other", "name_location"]
+        fields = [
+            "name",
+            "phone",
+            "city",
+            "city_id",
+            "address",
+            "postal_code",
+            "other",
+            "name_location",
+        ]
 
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
         instance.phone = validated_data.get("phone", instance.phone)
         instance.city = validated_data.get("city", instance.city)
+        instance.city_id = validated_data.get("city_id", instance.city_id)
         instance.address = validated_data.get("address", instance.address)
         instance.other = validated_data.get("other", instance.other)
+        instance.postal_code = validated_data.get("postal_code", instance.postal_code)
         instance.name_location = validated_data.get(
             "name_location", instance.name_location
         )
@@ -203,7 +208,7 @@ class WhoamiSerializer(ModelSerializer):
 
     def get_store(self, obj):
         try:
-            return obj.store.name
+            return StoreSerializer(obj.store).data
         except Exception:
             return None
 
@@ -213,7 +218,7 @@ class WhoamiSerializer(ModelSerializer):
             return LocationSerializer(qs, many=True).data
         except Exception:
             return LocationSerializer(qs).data
-
+    
 
 class UserEditProfilSerializer(ModelSerializer):
     profile = Base64ImageField(

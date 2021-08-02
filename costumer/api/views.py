@@ -1,3 +1,4 @@
+import json
 from utils.rawQuery import dictfetchall
 from costumer.models import Location, Store, TokenNotif
 from rest_framework.generics import (
@@ -19,7 +20,6 @@ from rest_framework import status
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
 from rest_framework.views import APIView
-from django.middleware.csrf import get_token
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -34,8 +34,6 @@ from .serializers import (
     StoreDetailSerializers,
     TokenSerializer,
     WhoamiSerializer,
-    postCodeSerilaizer,
-    provinceSerializer,
     registeruser,
     UserDetailSerilaizer,
     UserEditProfilSerializer,
@@ -306,56 +304,84 @@ class LocationDatailApiView(RetrieveUpdateDestroyAPIView):
         return LocationSerializer
 
 
-class ProvinceIndoApiView(APIView):
+class LocationIndo(APIView):
     __db = connections["provinces"].cursor()
     queryset = None
 
-    def execSql(self,query):
+    def execSql(self, query):
         cursor = self.__db
         # Data modifying operation - commit required
         cursor.execute(query)
-        return cursor
+        return dictfetchall(cursor)
+
+
+class ProvinceIndoApiView(LocationIndo):
+    def get(self, request, *args, **kwargs):
+        query = f'SELECT province_code, province_name FROM db_province_data WHERE province_name LIKE "%{request.GET.get("q","")}%" ORDER BY province_name  ;'
+        data = self.execSql(query)
+        return Response(data)
+
+
+class AddressIndoApiView(LocationIndo):
+    def sortPostalCode(self, query):
+        data = {}
+        for item in query:
+            name = f"{item['city']}_{item['sub_district']}"
+
+            if name in data:
+                data[name] = [*data[name], item["postal_code"]]
+            else:
+                data[name] = [item["postal_code"]]
+        return data
+
+    def mergeData(self, data, postal_code):
+        new_data = []
+        for item in data:
+            name = f"{item['city']}_{item['sub_district']}"
+            if name in postal_code:
+                new_data.append({**item, "postal_code": postal_code[name]})
+        return new_data
 
     def get(self, request, *args, **kwargs):
-        query = f'SELECT id, province_code, province_name FROM db_province_data WHERE province_name LIKE "%{request.GET.get("q","")}%" ;'
-        data = dictfetchall(self.execSql(query))
+        search = request.GET.get("search", False)
 
-        return Response(data)
-
-
-class PostCodeIndoApiView(APIView):
-    
-    __db = connections["provinces"].cursor()
-    queryset = None
-
-    def execSql(self,query):
-        cursor = self.__db
-        # Daa modifying operation - commit required
-        cursor.execute(query)
-        return cursor
-
-    def get(self,request,*args, **kwargs):
-        query = 'SELECT DISTINCT sub_district,city,postal_code FROM db_postal_code_data '
-
-        province = request.GET.get('province',False)
-        city = request.GET.get("city",False)
-        sub_district = request.GET.get('kec',False)
-
-        if province:
-            query += f'WHERE province_code={province} '
+        if search:
+            query = f'SELECT DISTINCT Province.province_name ,Address.sub_district,Address.city,Address.city_id FROM db_postal_code_data as Address JOIN db_province_data as Province ON Province.province_code=Address.province_code  WHERE city LIKE "%{search}%" OR sub_district LIKE "%{search}%" '
+            query_code = f'SELECT DISTINCT Address.city,Address.sub_district,Address.postal_code FROM db_postal_code_data as Address JOIN db_province_data as Province ON Province.province_code=Address.province_code  WHERE city LIKE "%{search}%" OR sub_district LIKE "%{search}%" ORDER BY Address.postal_code '
+            # query = f'SELECT DISTINCT db_province_data.province_name,db_postal_code_data.sub_district,db_postal_code_data.city,db_postal_code_data.postal_code FROM db_postal_code_data JOIN db_province_data ON db_province_data.province_code=db_postal_code_data.province_code  WHERE city LIKE "%{search}%" OR sub_district LIKE "%{search}%" ORDER BY db_province_data.province_name '
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        if not city and not sub_district:
-            query = f'SELECT DISTINCT city FROM db_postal_code_data WHERE province_code={province} '
-            query = f'{query} ORDER BY city'
-
-        if city and not sub_district:
-            query = f'SELECT DISTINCT sub_district FROM db_postal_code_data WHERE province_code={province} AND city LIKE "%{city}%" ORDER BY sub_district '
-          
-        if sub_district :
-            query += f'AND city LIKE "%{city}%" AND sub_district LIKE "%{sub_district}%" ORDER BY postal_code '
-
-        data = dictfetchall(self.execSql(query))
+        postal_code = self.sortPostalCode(self.execSql(query_code))
+        data = self.mergeData(self.execSql(query), postal_code)
 
         return Response(data)
+
+
+class PostCodeIndoAPiView(LocationIndo):
+    def get(self, request, *args, **kwargs):
+        city = request.GET.get("city", False)
+        sub_district = request.GET.get("kec", False)
+        if city and sub_district:
+            query = f'SELECT DISTINCT postal_code FROM db_postal_code_data WHERE city LiKE "%{city}%" AND sub_district LIKE "%{sub_district}%" '
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.execSql(query))
+
+
+class CekOngkir(APIView):
+    def post(self, request, *args, **kwargs):
+        import requests
+
+        url = "https://api.rajaongkir.com/starter/cost"
+        payload = {
+            "weight": "100",
+            "courier": "jne",
+        }
+        payload = {**payload,**request.data}
+        files = []
+        headers = {"key": "597f52e05a00c744d13ff6957a8ee156"}
+
+        response = requests.request(
+            "POST", url, headers=headers, data=payload, files=files
+        )
+        return Response(json.loads(response.text))

@@ -140,7 +140,9 @@ class Location(models.Model):
     name = models.CharField(_("nama lengkap"), max_length=50)
     phone = models.CharField(_("nomor handphone"), validators=[phone_regex], max_length=17,blank=True, null=True)
 
-    city = models.CharField(_("provinsi ,kota ,kecamatan ,kode poss "),max_length=300)
+    city = models.CharField(_("provinsi ,kota ,kecamatan "),max_length=300)
+    city_id = models.IntegerField(blank=True, null=True)
+    postal_code = models.IntegerField(_("postal_code"))
     address = models.CharField(max_length=50)
     other = models.CharField(_("patokan alamat "), max_length=150, blank=True, null=True)
 

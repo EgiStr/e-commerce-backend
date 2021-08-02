@@ -1,8 +1,22 @@
+from costumer.models import Location, Store
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from store.models import Bookmark, Category, Image, Product, Rating, Varian
 from utils.serializers import Base64ImageField
 
+class LocationStoreSerializer(ModelSerializer):
+    class Meta:
+        model = Location
+        fields = ["id", "city", "city_id"]
+
+
+class StoreSerializer(ModelSerializer):
+    location = SerializerMethodField()
+    class Meta:
+        model = Store
+        fields = ['id',"name", "profile", "location"]
+    def get_location(self,obj):
+        return LocationStoreSerializer(obj.get_location().first()).data
 
 class CategorySerialiazer(ModelSerializer):
     class Meta:
@@ -126,7 +140,8 @@ class ProductOrderSerializer(ModelSerializer):
         return obj.product.title
 
     def get_store(self, obj):
-        return obj.product.penjual.name
+        
+        return StoreSerializer(obj.product.penjual).data
 
     def get_slug(self, obj):
         return obj.product.slug
@@ -150,8 +165,8 @@ class ProductListSerializer(ModelSerializer):
         return qs.data
 
     def get_store(self, obj):
-        return obj.penjual.name
-
+        
+        return StoreSerializer(obj.penjual).data
 
 class ProductDetailSerializer(ModelSerializer):
 
@@ -181,7 +196,8 @@ class ProductDetailSerializer(ModelSerializer):
         ]
 
     def get_store(self, obj):
-        return obj.penjual.name
+        
+        return StoreSerializer(obj.penjual).data
 
     def get_image(self, obj):
         try:
