@@ -1,8 +1,9 @@
 from rest_framework import status
-from rest_framework.generics import DestroyAPIView, GenericAPIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.mixins import CreateModelMixin
+from rest_framework.views import APIView
 
 from .serializers import CartListSerializer, CartItemCreateSerializer
 from .permissions import IsCartAuth
@@ -33,13 +34,12 @@ class CartApiView(CreateModelMixin, GenericAPIView):
         serializer.save(cart=cart)
 
 
-class CartDeleteApiView(DestroyAPIView):
-    permission_classes = [IsAuthenticated, IsCartAuth]
+class CartDeleteApiView(APIView):
+    permission_classes = [IsAuthenticated]
+    queryset = None
 
-    def get_queryset(self):
-        return CartItem.objects.get(
-            product__id=self.kwargs["pk"], cart__user=self.request.user
-        )
-
-    def get_object(self):
-        return self.get_queryset()
+    def post(self, request, *args, **kwargs):
+        CartItem.objects.filter(cart__user=self.request.user).filter(
+            product__id__in=request.data
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

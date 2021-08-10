@@ -14,10 +14,9 @@ class Order(models.Model):
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="order", on_delete=models.CASCADE)
  
-    total_paid = models.IntegerField(blank=True, null=True)
+    ongkir = models.IntegerField(blank=True, null=True)
     order_key = models.CharField(unique=True,max_length=70)
     order_status = models.CharField(max_length=50,choices=ORDER_STATUS,default='payment')
-    
     paid = models.BooleanField(default=False) # True berarti sudah bayar
 
     create_at = models.DateTimeField(auto_now=False, auto_now_add=True) 

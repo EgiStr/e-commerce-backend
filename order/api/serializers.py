@@ -1,8 +1,10 @@
-from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from store.models import Image, Product, Varian
+from django.db.models.query import Prefetch
+from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 
 from order.models import Order, OrderItem
-
+from costumer.models import Store
 from store.api.serializers import ProductOrderSerializer
 import uuid
 from django.db import transaction
@@ -57,13 +59,11 @@ class OrderItemSerialiazer(ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "quantity"]
+        fields = ["id", "quantity", "product"]
 
 
 class OrderSeriliazer(ModelSerializer):
 
-    total_paid = SerializerMethodField()
-    total_item = SerializerMethodField()
     order_item = OrderItemSerialiazer(many=True)
 
     class Meta:
@@ -72,25 +72,50 @@ class OrderSeriliazer(ModelSerializer):
             "create_at",
             "order_status",
             "order_key",
-            "total_paid",
-            "total_item",
+            "ongkir",
             "order_item",
         ]
-
-    def get_total_paid(self, obj):
-        return obj.get_total_paid
-
-    def get_total_item(self, obj):
-        return obj.get_total_item
+    @classmethod
+    def setup_eager_loading(cls, queryset):
+        """Perform necessary eager loading of data."""
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                "order_item",
+                queryset=OrderItem.objects.prefetch_related(
+                    Prefetch(
+                        "product",
+                        queryset=Varian.objects.prefetch_related(
+                            Prefetch(
+                                "product",
+                                queryset=Product.objects.prefetch_related(
+                                    Prefetch(
+                                        "penjual",
+                                        queryset=Store.objects.prefetch_related(
+                                            "location"
+                                        ),
+                                    )
+                                ),
+                            )
+                        ).prefetch_related(
+                            Prefetch(
+                                "image_varian",
+                                queryset=Image.objects.select_related("varian"),
+                            )
+                        ),
+                    )
+                ),
+            )
+        )
+        return queryset
 
 
 class OrderCreateSeriliazer(ModelSerializer):
     order_item = OrderitemEditSerializer(many=True)
+    order_key = serializers.CharField(required=False)
 
     class Meta:
         model = Order
-        # fields = ['order_items']
-        fields = ["id", "order_item", "location"]
+        fields = ["id", "order_item", "location", "ongkir", "order_key"]
 
     def create(self, validated_data):
         order_items = validated_data.pop("order_item")
@@ -123,22 +148,52 @@ class OrderCreateSeriliazer(ModelSerializer):
 
 
 class OrderDetailSerializer(ModelSerializer):
-    total_paid = SerializerMethodField()
-    total_item = SerializerMethodField()
-    order_item = SerializerMethodField()
+
+    order_item = OrderItemSerialiazer(many=True)
 
     class Meta:
         model = Order
-        fields = "__all__"
+        fields = [
+            "id",
+            "ongkir",
+            "order_key",
+            "order_status",
+            "create_at",
+            "order_item",
+        ]
 
-    def get_total_paid(self, obj):
-        return obj.get_total_paid
-
-    def get_total_item(self, obj):
-        return obj.get_total_item
-
-    def get_order_item(self, obj):
-        return OrderItemSerialiazer(obj.get_order_item(), many=True).data
+    @classmethod
+    def setup_eager_loading(cls, queryset):
+        """Perform necessary eager loading of data."""
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                "order_item",
+                queryset=OrderItem.objects.prefetch_related(
+                    Prefetch(
+                        "product",
+                        queryset=Varian.objects.prefetch_related(
+                            Prefetch(
+                                "product",
+                                queryset=Product.objects.prefetch_related(
+                                    Prefetch(
+                                        "penjual",
+                                        queryset=Store.objects.prefetch_related(
+                                            "location"
+                                        ),
+                                    )
+                                ),
+                            )
+                        ).prefetch_related(
+                            Prefetch(
+                                "image_varian",
+                                queryset=Image.objects.select_related("varian"),
+                            )
+                        ),
+                    )
+                ),
+            )
+        )
+        return queryset
 
 
 class OrderUpdateSerializer(ModelSerializer):

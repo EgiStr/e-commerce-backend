@@ -11,12 +11,11 @@ class LocationStoreSerializer(ModelSerializer):
 
 
 class StoreSerializer(ModelSerializer):
-    location = SerializerMethodField()
+    location = LocationStoreSerializer(many=True)
+    
     class Meta:
         model = Store
         fields = ['id',"name", "profile", "location"]
-    def get_location(self,obj):
-        return LocationStoreSerializer(obj.get_location().first()).data
 
 class CategorySerialiazer(ModelSerializer):
     class Meta:
@@ -25,8 +24,6 @@ class CategorySerialiazer(ModelSerializer):
 
 
 class imageSerializer(ModelSerializer):
-
-    is_thumb = serializers.BooleanField(default=False)
     image = Base64ImageField(
         max_length=None,
         use_url=True,
@@ -34,7 +31,7 @@ class imageSerializer(ModelSerializer):
 
     class Meta:
         model = Image
-        fields = ["image", "is_thumb"]
+        fields = ["image"]
 
 
 class VarianCreateSerializer(ModelSerializer):
@@ -108,8 +105,10 @@ class ProductOrderSerializer(ModelSerializer):
     store = SerializerMethodField()
     slug = SerializerMethodField()
     varian = SerializerMethodField()
+    # image_varian = imageSerializer(many=True)
     thumb = SerializerMethodField()
-
+    
+    
     class Meta:
         model = Varian
         fields = [
@@ -121,26 +120,15 @@ class ProductOrderSerializer(ModelSerializer):
             "price",
             "slug",
         ]
-
-    def get_thumb(self, obj):
-        try:
-            qs = obj.get_image_varian()
-            if qs == None:
-                qs = obj.product.get_thumb()
-
-        except Exception as e:
-            qs = obj.product.get_thumb()
-
-        return imageSerializer(qs).data
-
-    def get_varian(Self, obj):
+    def get_thumb(self,obj):
+        return imageSerializer(obj.image_varian,many=True).data
+    def get_varian(self, obj):
         return obj.name
 
     def get_title(self, obj):
         return obj.product.title
 
     def get_store(self, obj):
-        
         return StoreSerializer(obj.product.penjual).data
 
     def get_slug(self, obj):

@@ -159,7 +159,7 @@ class Location(models.Model):
     )
     store = models.ForeignKey(
         "Store",
-        related_name="store_address",
+        related_name="location",
         on_delete=models.CASCADE,
         blank=True,
         null=True,
