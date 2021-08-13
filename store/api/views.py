@@ -1,11 +1,10 @@
+from django.db.models import query
 from costumer.models import Store
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import  IsAuthenticated
 
-from rest_framework.generics import CreateAPIView, GenericAPIView, ListAPIView, ListCreateAPIView,RetrieveUpdateDestroyAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView, ListCreateAPIView,RetrieveUpdateDestroyAPIView
 
 from rest_framework.filters import SearchFilter,OrderingFilter
-
-from rest_framework.mixins import CreateModelMixin,UpdateModelMixin,DestroyModelMixin
 
 from store.api.serializers import (
     BookMarkSerializer,
@@ -16,7 +15,6 @@ from store.api.serializers import (
     RatingCreateSerializers,
     RatingEditSerializers,
     VarianCreateSerializer,
-    imageSerializer,
 
 )
 
@@ -36,9 +34,6 @@ class CategoryProductApiView(ListAPIView):
 
 
 class ProductApiView(ListCreateAPIView):
-
-    queryset= Product.objects.all()
-
     pagination_class = PagePagination
     
     filter_backends = [SearchFilter,OrderingFilter]
@@ -52,6 +47,9 @@ class ProductApiView(ListCreateAPIView):
             return ProductCreateSerializer
         return ProductListSerializer
     
+    def get_queryset(self):
+        return ProductListSerializer.eager_loading(Product.objects.all())
+
     def perform_create(self, serializer):
         store = Store.objects.get(pemilik=self.request.user)
         serializer.save(penjual=store)
@@ -67,7 +65,7 @@ class productDetailAPiView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         qs = Product.objects.filter(penjual__name=self.kwargs['store'],slug=self.kwargs['slug'])
-        return qs
+        return ProductDetailSerializer.eager_loading(qs)
     
 class VarianApiView(CreateAPIView):
     serializer_class = VarianCreateSerializer

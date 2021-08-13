@@ -15,12 +15,15 @@ class CartApiView(CreateModelMixin, GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.request.method == "POST":
-            return CartItemCreateSerializer
-        return CartListSerializer
+        if self.request.method == "GET":
+            return CartListSerializer
+        return CartItemCreateSerializer
 
     def get_queryset(self):
-        return Cart.objects.get(user=self.request.user)
+        
+        qs = Cart.objects.filter(user=self.request.user)
+        qs = CartListSerializer.eager_loading(qs)
+        return qs
 
     def get(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_queryset())

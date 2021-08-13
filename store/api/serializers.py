@@ -1,8 +1,10 @@
+from django.db.models.query import Prefetch
 from costumer.models import Location, Store
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from store.models import Bookmark, Category, Image, Product, Rating, Varian
 from utils.serializers import Base64ImageField
+
 
 class LocationStoreSerializer(ModelSerializer):
     class Meta:
@@ -12,10 +14,11 @@ class LocationStoreSerializer(ModelSerializer):
 
 class StoreSerializer(ModelSerializer):
     location = LocationStoreSerializer(many=True)
-    
+
     class Meta:
         model = Store
-        fields = ['id',"name", "profile", "location"]
+        fields = ["id", "name", "profile", "location"]
+
 
 class CategorySerialiazer(ModelSerializer):
     class Meta:
@@ -31,7 +34,7 @@ class imageSerializer(ModelSerializer):
 
     class Meta:
         model = Image
-        fields = ["image"]
+        fields = ["image", "is_thumb"]
 
 
 class VarianCreateSerializer(ModelSerializer):
@@ -94,21 +97,20 @@ class RatingSerializer(ModelSerializer):
         return obj.user.username
 
     def get_profile(self, obj):
-        profile = obj.user.profile 
+        profile = obj.user.profile
         if profile.name != "":
-            return f"media/{profile.name}"      
+            return f"media/{profile.name}"
         return None
-        
+
+
 # for order Product -> varian
 class ProductOrderSerializer(ModelSerializer):
     title = SerializerMethodField()
     store = SerializerMethodField()
     slug = SerializerMethodField()
     varian = SerializerMethodField()
-    # image_varian = imageSerializer(many=True)
     thumb = SerializerMethodField()
-    
-    
+
     class Meta:
         model = Varian
         fields = [
@@ -120,8 +122,16 @@ class ProductOrderSerializer(ModelSerializer):
             "price",
             "slug",
         ]
-    def get_thumb(self,obj):
-        return imageSerializer(obj.image_varian,many=True).data
+
+    def get_thumb(self, obj):
+        try:
+            qs = obj.get_image_varian()
+            if qs == None:
+                qs = obj.product.images
+            return imageSerializer(qs, many=True).data
+        except Exception:
+            return imageSerializer(qs).data
+
     def get_varian(self, obj):
         return obj.name
 
@@ -146,15 +156,27 @@ class ProductListSerializer(ModelSerializer):
 
     def get_thumb(self, obj):
         try:
-            qs = imageSerializer(obj.get_thumb())
+            qs = imageSerializer(obj.get_image()[0])
+            return qs.data
         except Exception as e:
             return None
 
-        return qs.data
-
     def get_store(self, obj):
-        
+
         return StoreSerializer(obj.penjual).data
+
+    @classmethod
+    def eager_loading(cls, queryset):
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                "penjual",
+                queryset=Store.objects.prefetch_related("location"),
+            )
+        ).prefetch_related(
+            Prefetch("images", queryset=Image.objects.filter(is_thumb=True))
+        )
+        return queryset
+
 
 class ProductDetailSerializer(ModelSerializer):
 
@@ -184,7 +206,7 @@ class ProductDetailSerializer(ModelSerializer):
         ]
 
     def get_store(self, obj):
-        
+
         return StoreSerializer(obj.penjual).data
 
     def get_image(self, obj):
@@ -205,6 +227,23 @@ class ProductDetailSerializer(ModelSerializer):
 
     def get_stock(self, obj):
         return obj.get_stock
+
+    @classmethod
+    def eager_loading(cls, queryset):
+        queryset = queryset.prefetch_related(
+                Prefetch(
+                    "penjual",
+                    queryset=Store.objects.prefetch_related("location"),
+                )
+            ).prefetch_related(
+                Prefetch("images", queryset=Image.objects.all())
+            ).prefetch_related(
+                Prefetch("rating", queryset=Rating.objects.select_related("user"))
+            ).prefetch_related(
+                Prefetch("varian", queryset=Varian.objects.prefetch_related('image_varian'))
+            )
+        
+        return queryset
 
 
 class ProductCreateSerializer(ModelSerializer):

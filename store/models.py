@@ -57,10 +57,10 @@ class Varian(models.Model):
     )
 
     def __str__(self) -> str:
-        return f"varian {self.product.title} name {self.name}"
+        return f"varian {self.  product.title} name {self.name}"
 
     def get_image_varian(self):
-        return self.image_varian.first() or None
+        return self.image_varian.all() or None
 
 
 class Product(models.Model):
@@ -114,7 +114,7 @@ class Product(models.Model):
         return self.images.all()
 
     def get_varian(self):
-        return self.varian.filter(is_active=True)
+        return self.varian.all()
 
 
 class Rating(models.Model):

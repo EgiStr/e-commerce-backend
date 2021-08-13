@@ -75,6 +75,7 @@ class OrderSeriliazer(ModelSerializer):
             "ongkir",
             "order_item",
         ]
+
     @classmethod
     def setup_eager_loading(cls, queryset):
         """Perform necessary eager loading of data."""
@@ -94,7 +95,8 @@ class OrderSeriliazer(ModelSerializer):
                                             "location"
                                         ),
                                     )
-                                ),
+                                
+                                ).prefetch_related(Prefetch('images',queryset=Image.objects.filter(is_thumb=True))),
                             )
                         ).prefetch_related(
                             Prefetch(
@@ -181,7 +183,8 @@ class OrderDetailSerializer(ModelSerializer):
                                             "location"
                                         ),
                                     )
-                                ),
+                                
+                                ).prefetch_related(Prefetch('images',queryset=Image.objects.filter(is_thumb=True))),
                             )
                         ).prefetch_related(
                             Prefetch(
@@ -194,7 +197,6 @@ class OrderDetailSerializer(ModelSerializer):
             )
         )
         return queryset
-
 
 class OrderUpdateSerializer(ModelSerializer):
     class Meta:
