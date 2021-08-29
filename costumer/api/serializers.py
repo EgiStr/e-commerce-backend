@@ -1,4 +1,6 @@
-from store.api.serializers import StoreSerializer
+from datetime import datetime
+from order.models import Order
+from store.api.serializers import ProductListSerializer, StoreSerializer
 from costumer.models import Location, Store, TokenNotif
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -7,6 +9,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.validators import UniqueValidator
 from utils.serializers import Base64ImageField
+from django.core.paginator import Paginator
 
 User = get_user_model()
 
@@ -81,7 +84,6 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True, validators=[validate_password])
 
     new_password2 = serializers.CharField(required=True)
-
 
 
 class LocationSerializer(ModelSerializer):
@@ -218,7 +220,7 @@ class WhoamiSerializer(ModelSerializer):
             return LocationSerializer(qs, many=True).data
         except Exception:
             return LocationSerializer(qs).data
-    
+
 
 class UserEditProfilSerializer(ModelSerializer):
     profile = Base64ImageField(
@@ -238,9 +240,100 @@ class UserEditProfilSerializer(ModelSerializer):
 
 
 class StoreDetailSerializers(ModelSerializer):
+    orders = SerializerMethodField()
+
     class Meta:
         model = Store
         fields = "__all__"
+
+    def get_orders(self, obj):
+        order = Order.objects.filter(id__in=obj.get_order_id())
+
+        return OrderSeriliazer(
+            OrderSeriliazer.setup_eager_loading(
+                order.filter(create_at__month=self.get_date())[:5]
+            ),
+            many=True,
+        ).data
+
+    def get_date(self):
+        return (
+            self.context.get("date")
+            if self.context.get("date")
+            else datetime.today().month
+        )
+
+
+class StoreOrdersSerializers(ModelSerializer):
+    orders = SerializerMethodField()
+    has_previous = SerializerMethodField()
+    has_next = SerializerMethodField()
+    next = False
+    previous = False
+
+    class Meta:
+        model = Store
+        fields = [
+            "has_previous",
+            "has_next",
+            "orders",
+        ]
+
+    def get_has_previous(self, obj):
+        return self.next
+
+    def get_has_next(self, obj):
+        return self.previous
+
+    def get_orders(self, obj):
+        order = Order.objects.filter(id__in=obj.get_order_id())
+        qs = Paginator(order, 2)
+        qs = qs.page(self.get_page())
+        data = OrderSeriliazer(
+            OrderSeriliazer.setup_eager_loading(qs.object_list),
+            many=True,
+        )
+        data = list(data.data)
+        data.append({"has_next": qs.has_next(),"has_previous": qs.has_previous(),"count":qs.end_index()})
+        # bakal diganti sama serializer yang baru 
+        return data
+
+    def get_date(self):
+        return (
+            self.context.get("date")
+            if self.context.get("date")
+            else datetime.today().month
+        )
+
+    def get_page(self):
+        return self.context.get("page", 1)
+
+
+class StoreProductsSerializers(ModelSerializer):
+    products = SerializerMethodField()
+
+    class Meta:
+        model = Store
+        fields = "__all__"
+
+    def get_products(self, obj):
+        print(self.get_date())
+        product = obj.get_product()
+        return ProductListSerializer(
+            product,
+            many=True,
+        ).data
+
+    def get_date(self):
+
+        return (
+            self.context.get("date")
+            if self.context.get("date")
+            else datetime.today().month
+        )
+
+    def get_page(self):
+        return self.get_extra_kwargs.get("page", 1)
 
 
 class StoreproductDetailSerializer(ModelSerializer):

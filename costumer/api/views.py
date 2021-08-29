@@ -8,7 +8,7 @@ from rest_framework.generics import (
     RetrieveUpdateDestroyAPIView,
     UpdateAPIView,
 )
-
+from itertools import chain
 from django.db import connections
 
 from datetime import datetime, timedelta
@@ -23,6 +23,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from order.models import Order
 
 
 from .permission import isAuthor, isOwner
@@ -32,6 +33,8 @@ from .serializers import (
     LocationEditSerializer,
     LocationSerializer,
     StoreDetailSerializers,
+    StoreOrdersSerializers,
+    StoreProductsSerializers,
     TokenSerializer,
     WhoamiSerializer,
     registeruser,
@@ -240,15 +243,40 @@ class DashbordView(UpdateModelMixin, GenericAPIView):
 
 class StoreDashboardApiView(GenericAPIView):
     permission_classes = [IsAuthenticated, isOwner]
-    serializer_class = StoreDetailSerializers
+    serializer_class = StoreOrdersSerializers
 
     def get_queryset(self):
-        return Store.objects.get(pemilik=self.request.user)
+        qs =Store.objects.get(pemilik=self.request.user)
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(),context={"date":request.GET.get("date")})
+    
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+class StoreOrderApiView(GenericAPIView):
+    permission_classes = [IsAuthenticated, isOwner]
+    serializer_class = StoreOrdersSerializers
+
+    def get_queryset(self):
+        qs =Store.objects.get(pemilik=self.request.user)
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        search = request.GET.get("search", False)
+        serializer = self.get_serializer(self.get_queryset())
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+class StoreProductAPiView(GenericAPIView):
+    permission_classes = [IsAuthenticated, isOwner]
+    serializer_class = StoreProductsSerializers
+    
+    def get_queryset(self):
+        qs =Store.objects.get(pemilik=self.request.user)
+        return qs
 
     def get(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_queryset())
         return Response(data=serializer.data, status=status.HTTP_200_OK)
-
 
 class WhoamiApiView(APIView):
     permission_classes = [IsAuthenticated]
@@ -313,15 +341,6 @@ class LocationIndo(APIView):
         # Data modifying operation - commit required
         cursor.execute(query)
         return dictfetchall(cursor)
-
-
-class ProvinceIndoApiView(LocationIndo):
-    def get(self, request, *args, **kwargs):
-        query = f'SELECT province_code, province_name FROM db_province_data WHERE province_name LIKE "%{request.GET.get("q","")}%" ORDER BY province_name  ;'
-        data = self.execSql(query)
-        return Response(data)
-
-
 class AddressIndoApiView(LocationIndo):
     def sortPostalCode(self, query):
         data = {}
@@ -348,24 +367,12 @@ class AddressIndoApiView(LocationIndo):
         if search:
             query = f'SELECT DISTINCT Province.province_name ,Address.sub_district,Address.city,Address.city_id FROM db_postal_code_data as Address JOIN db_province_data as Province ON Province.province_code=Address.province_code  WHERE city LIKE "%{search}%" OR sub_district LIKE "%{search}%" '
             query_code = f'SELECT DISTINCT Address.city,Address.sub_district,Address.postal_code FROM db_postal_code_data as Address JOIN db_province_data as Province ON Province.province_code=Address.province_code  WHERE city LIKE "%{search}%" OR sub_district LIKE "%{search}%" ORDER BY Address.postal_code '
-            # query = f'SELECT DISTINCT db_province_data.province_name,db_postal_code_data.sub_district,db_postal_code_data.city,db_postal_code_data.postal_code FROM db_postal_code_data JOIN db_province_data ON db_province_data.province_code=db_postal_code_data.province_code  WHERE city LIKE "%{search}%" OR sub_district LIKE "%{search}%" ORDER BY db_province_data.province_name '
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         postal_code = self.sortPostalCode(self.execSql(query_code))
         data = self.mergeData(self.execSql(query), postal_code)
 
         return Response(data)
-
-
-class PostCodeIndoAPiView(LocationIndo):
-    def get(self, request, *args, **kwargs):
-        city = request.GET.get("city", False)
-        sub_district = request.GET.get("kec", False)
-        if city and sub_district:
-            query = f'SELECT DISTINCT postal_code FROM db_postal_code_data WHERE city LiKE "%{city}%" AND sub_district LIKE "%{sub_district}%" '
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        return Response(self.execSql(query))
 
 
 class CekOngkir(APIView):

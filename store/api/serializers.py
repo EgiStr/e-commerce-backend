@@ -128,9 +128,9 @@ class ProductOrderSerializer(ModelSerializer):
             qs = obj.get_image_varian()
             if qs == None:
                 qs = obj.product.images
-            return imageSerializer(qs, many=True).data
-        except Exception:
             return imageSerializer(qs).data
+        except Exception:
+            return imageSerializer(qs,many=True).data
 
     def get_varian(self, obj):
         return obj.name

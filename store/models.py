@@ -61,6 +61,9 @@ class Varian(models.Model):
 
     def get_image_varian(self):
         return self.image_varian.all() or None
+    
+    def get_order_item(self):
+        return self.product_order.select_related('order').all()
 
 
 class Product(models.Model):
@@ -116,6 +119,15 @@ class Product(models.Model):
     def get_varian(self):
         return self.varian.all()
 
+    def get_order(self):
+        varian = [item.get_order_item() for item in self.get_varian()]
+        query = []
+        for item in varian:
+            
+            query = [*list(item.values_list('id', flat=True)),*query]
+            chain = [oItem.order.id for oItem in list(item)]
+            query = [*chain,*query]         
+        return query
 
 class Rating(models.Model):
     user = models.ForeignKey(

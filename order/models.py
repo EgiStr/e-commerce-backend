@@ -39,7 +39,7 @@ class Order(models.Model):
         return sum(item.quantity for item in self.order_item.all())
 
     def get_order_item(self):
-        return self.order_item.all()
+        return self.order_item.select_related('order').all()
     
  
 class OrderItem(models.Model):

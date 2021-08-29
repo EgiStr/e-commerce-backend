@@ -8,6 +8,8 @@ from django.core.validators import RegexValidator
 
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
+from itertools import chain
+
 
 phone_regex = RegexValidator(
         regex=r"^\+?1?\d{9,15}$",
@@ -125,6 +127,10 @@ class Store(models.Model):
 
     def get_product(self):
         return self.product.all()
+    
+    def get_order_id(self):
+        orders = [item.get_order() for item in self.product.all()]
+        return list(set(chain(*orders)))
 
 
 class Location(models.Model):
