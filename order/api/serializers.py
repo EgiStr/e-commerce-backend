@@ -1,3 +1,4 @@
+from rest_framework.fields import SerializerMethodField
 from store.models import Image, Product, Varian
 from django.db.models.query import Prefetch
 from rest_framework.serializers import ModelSerializer
@@ -148,7 +149,25 @@ class OrderCreateSeriliazer(ModelSerializer):
 
         return order
 
+class OrderInvoiceSerilazer(ModelSerializer):
+    customer = serializers.CharField(source="user.username")
+    class Meta:
+        model = Order
+        fields = [      
+            'order_key',
+            'create_at',
+            'customer',
+            'order_status',
+        ]
+    
+    @classmethod
+    def setup_eager_loading(cls,queryset):
+        return queryset.select_related('user')
 
+class OrderStatis(ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['id']
 class OrderDetailSerializer(ModelSerializer):
 
     order_item = OrderItemSerialiazer(many=True)

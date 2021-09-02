@@ -1,15 +1,21 @@
 from datetime import datetime
-from order.models import Order
+
+from django.db.models.query import Prefetch
+from order.models import Order, OrderItem
 from store.api.serializers import ProductListSerializer, StoreSerializer
 from costumer.models import Location, Store, TokenNotif
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from order.api.serializers import OrderSeriliazer
+from order.api.serializers import OrderInvoiceSerilazer, OrderSeriliazer
 from rest_framework import serializers
-from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from rest_framework.serializers import (
+    ModelSerializer,
+    Serializer,
+    SerializerMethodField,
+)
 from rest_framework.validators import UniqueValidator
 from utils.serializers import Base64ImageField
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 User = get_user_model()
 
@@ -239,21 +245,73 @@ class UserEditProfilSerializer(ModelSerializer):
         return instance
 
 
+class summaryOrderSerialiazer(serializers.BaseSerializer):
+    def sortPostalCode(self, query):
+        data = {}
+        for item in query:
+            name = f"{item['city']}_{item['sub_district']}"
+
+            if name in data:
+                data[name] = [*data[name], item["postal_code"]]
+            else:
+                data[name] = [item["postal_code"]]
+        return data
+
+    def to_internal_value(self, data):
+        return
+
+    def to_representation(self, instance):
+        orders = instance.get("order")
+        total_orders = 0
+        balance = 0
+        salary = 0
+        status_order = {}
+        for item in list(orders):
+            # for status order sort
+            status = item.order_status
+            if status in status_order:
+                status_order[status] = status_order[status] + 1
+            else:
+                status_order[status] = 1
+            balance += item.get_total_paid if status != "payment" else 0
+            salary += item.get_total_item
+            total_orders += 1
+
+        return {
+            "invoice": OrderInvoiceSerilazer(
+                orders[:5],
+                many=True,
+            ).data,
+            "summary": {
+                "total_orders": total_orders,
+                "balance": balance,
+                "status": status_order,
+                "salary": salary,
+            },
+        }
+
+    @classmethod
+    def setup_eager_loading(cls, queryset):
+        queryset = queryset.prefetch_related(
+            Prefetch("order_item", queryset=OrderItem.objects.select_related("product"))
+        )
+        return queryset
+
+
 class StoreDetailSerializers(ModelSerializer):
-    orders = SerializerMethodField()
+    summary = SerializerMethodField()
 
     class Meta:
         model = Store
-        fields = "__all__"
+        fields = ["summary"]
 
-    def get_orders(self, obj):
-        order = Order.objects.filter(id__in=obj.get_order_id())
+    def get_summary(self, obj):
+        order = Order.objects.filter(
+            id__in=obj.get_order_id(), create_at__month=self.get_date()
+        ).select_related("user")
 
-        return OrderSeriliazer(
-            OrderSeriliazer.setup_eager_loading(
-                order.filter(create_at__month=self.get_date())[:5]
-            ),
-            many=True,
+        return summaryOrderSerialiazer(
+            {"order": summaryOrderSerialiazer.setup_eager_loading(order)}
         ).data
 
     def get_date(self):
@@ -264,39 +322,47 @@ class StoreDetailSerializers(ModelSerializer):
         )
 
 
+class UtilsOrderSerializer(serializers.BaseSerializer):
+    def to_representation(self, instance):
+        return {
+            "count": instance.get("count", 0),
+            "has_previous": instance.get("has_previous", False),
+            "has_next": instance.get("has_next", False),
+            "result": OrderInvoiceSerilazer(instance.get("orders", []), many=True).data,
+        }
+
+    def to_internal_value(self, data):
+        return
+
+
 class StoreOrdersSerializers(ModelSerializer):
-    orders = SerializerMethodField()
-    has_previous = SerializerMethodField()
-    has_next = SerializerMethodField()
-    next = False
-    previous = False
+    data = SerializerMethodField()
 
     class Meta:
         model = Store
         fields = [
-            "has_previous",
-            "has_next",
-            "orders",
+            "data",
         ]
 
-    def get_has_previous(self, obj):
-        return self.next
+    def get_data(self, obj):
+        order = Order.objects.filter(id__in=obj.get_order_id()).select_related("user")
+        paginator = Paginator(order, 5)
+        try:
+            qs = paginator.page(self.get_page())
+        except PageNotAnInteger:
+            qs = paginator.page(1)
+        except EmptyPage:
+            qs = paginator.page(paginator.num_pages)
 
-    def get_has_next(self, obj):
-        return self.previous
-
-    def get_orders(self, obj):
-        order = Order.objects.filter(id__in=obj.get_order_id())
-        qs = Paginator(order, 2)
-        qs = qs.page(self.get_page())
-        data = OrderSeriliazer(
-            OrderSeriliazer.setup_eager_loading(qs.object_list),
-            many=True,
-        )
-        data = list(data.data)
-        data.append({"has_next": qs.has_next(),"has_previous": qs.has_previous(),"count":qs.end_index()})
-        # bakal diganti sama serializer yang baru 
-        return data
+        orders = {
+            "orders": qs.object_list,
+            "has_next": qs.has_next(),
+            "has_previous": qs.has_previous(),
+            "count": paginator.num_pages,
+        }
+        data = UtilsOrderSerializer(orders)
+        # bakal diganti sama serializer yang baru
+        return data.data
 
     def get_date(self):
         return (
@@ -309,20 +375,47 @@ class StoreOrdersSerializers(ModelSerializer):
         return self.context.get("page", 1)
 
 
+class UtilsProductSerializer(serializers.BaseSerializer):
+    def to_representation(self, instance):
+        return {
+            "count": instance.get("count", 0),
+            "has_previous": instance.get("has_previous", False),
+            "has_next": instance.get("has_next", False),
+            "result": ProductListSerializer(
+                instance.get("products"),
+                many=True,
+            ).data,
+        }
+
+    def to_internal_value(self, data):
+        return
+
+
 class StoreProductsSerializers(ModelSerializer):
-    products = SerializerMethodField()
+    data = SerializerMethodField()
 
     class Meta:
         model = Store
-        fields = "__all__"
+        fields = ["data"]
 
-    def get_products(self, obj):
-        print(self.get_date())
+    def get_data(self, obj):
+        
+
         product = obj.get_product()
-        return ProductListSerializer(
-            product,
-            many=True,
-        ).data
+        paginator = Paginator(product, 5)
+        try:
+            qs = paginator.page(self.get_page())
+        except PageNotAnInteger:
+            qs = paginator.page(1)
+        except EmptyPage:
+            qs = paginator.page(paginator.num_pages)
+        product = {
+            "products": qs.object_list,
+            "has_next": qs.has_next(),
+            "has_previous": qs.has_previous(),
+            "count": paginator.num_pages,
+        }
+        return UtilsProductSerializer(product).data
 
     def get_date(self):
 
@@ -333,7 +426,7 @@ class StoreProductsSerializers(ModelSerializer):
         )
 
     def get_page(self):
-        return self.get_extra_kwargs.get("page", 1)
+        return self.context.get("page", 1)
 
 
 class StoreproductDetailSerializer(ModelSerializer):

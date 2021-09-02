@@ -60,7 +60,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.AuthorizationHeaderMiddleware",
-    # "core.middleware.SqlPrintingMiddleware",
+    "core.middleware.SqlPrintingMiddleware",
 ]
 
 # cors allow

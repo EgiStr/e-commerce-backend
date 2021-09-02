@@ -243,7 +243,7 @@ class DashbordView(UpdateModelMixin, GenericAPIView):
 
 class StoreDashboardApiView(GenericAPIView):
     permission_classes = [IsAuthenticated, isOwner]
-    serializer_class = StoreOrdersSerializers
+    serializer_class = StoreDetailSerializers
 
     def get_queryset(self):
         qs =Store.objects.get(pemilik=self.request.user)
@@ -264,7 +264,7 @@ class StoreOrderApiView(GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         search = request.GET.get("search", False)
-        serializer = self.get_serializer(self.get_queryset())
+        serializer = self.get_serializer(self.get_queryset(),context={'search':search,'page':request.GET.get('page',1)})
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 class StoreProductAPiView(GenericAPIView):
     permission_classes = [IsAuthenticated, isOwner]
