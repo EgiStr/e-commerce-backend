@@ -1,4 +1,5 @@
 import json
+from store.api.serializers import ProductCreateSerializer, ProductEditSerializer
 from utils.rawQuery import dictfetchall
 from costumer.models import Location, Store, TokenNotif
 from rest_framework.generics import (
@@ -8,11 +9,10 @@ from rest_framework.generics import (
     RetrieveUpdateDestroyAPIView,
     UpdateAPIView,
 )
-from itertools import chain
 from django.db import connections
 
 from datetime import datetime, timedelta
-from rest_framework.mixins import UpdateModelMixin
+from rest_framework.mixins import CreateModelMixin, UpdateModelMixin
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import status
@@ -23,8 +23,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-from order.models import Order
-
 
 from .permission import isAuthor, isOwner
 from .serializers import (
@@ -246,37 +244,62 @@ class StoreDashboardApiView(GenericAPIView):
     serializer_class = StoreDetailSerializers
 
     def get_queryset(self):
-        qs =Store.objects.get(pemilik=self.request.user)
+        qs = Store.objects.get(pemilik=self.request.user)
         return qs
 
     def get(self, request, *args, **kwargs):
-        serializer = self.get_serializer(self.get_queryset(),context={"date":request.GET.get("date")})
-    
+        serializer = self.get_serializer(
+            self.get_queryset(), context={"date": request.GET.get("date")}
+        )
+
         return Response(data=serializer.data, status=status.HTTP_200_OK)
+
 
 class StoreOrderApiView(GenericAPIView):
     permission_classes = [IsAuthenticated, isOwner]
     serializer_class = StoreOrdersSerializers
 
     def get_queryset(self):
-        qs =Store.objects.get(pemilik=self.request.user)
+        qs = Store.objects.get(pemilik=self.request.user)
         return qs
 
     def get(self, request, *args, **kwargs):
         search = request.GET.get("search", False)
-        serializer = self.get_serializer(self.get_queryset(),context={'search':search,'page':request.GET.get('page',1)})
+        serializer = self.get_serializer(
+            self.get_queryset(),
+            context={"search": search, "page": request.GET.get("page", 1)},
+        )
         return Response(data=serializer.data, status=status.HTTP_200_OK)
-class StoreProductAPiView(GenericAPIView):
+
+
+class StoreProductAPiView(GenericAPIView, CreateModelMixin):
     permission_classes = [IsAuthenticated, isOwner]
-    serializer_class = StoreProductsSerializers
-    
+
+    def get_serializer_class(self):
+        return (
+            ProductCreateSerializer
+            if self.request.method == "POST"
+            else StoreProductsSerializers
+        )
+
     def get_queryset(self):
-        qs =Store.objects.get(pemilik=self.request.user)
+        qs = Store.objects.get(pemilik=self.request.user)
         return qs
 
     def get(self, request, *args, **kwargs):
-        serializer = self.get_serializer(self.get_queryset())
+        serializer = self.get_serializer(
+            self.get_queryset(),
+            context={"page": request.GET.get("page", 1)},
+        )
         return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        store = Store.objects.get(pemilik=self.request.user)
+        serializer.save(penjual=store)
+
 
 class WhoamiApiView(APIView):
     permission_classes = [IsAuthenticated]
@@ -341,6 +364,8 @@ class LocationIndo(APIView):
         # Data modifying operation - commit required
         cursor.execute(query)
         return dictfetchall(cursor)
+
+
 class AddressIndoApiView(LocationIndo):
     def sortPostalCode(self, query):
         data = {}
@@ -384,7 +409,7 @@ class CekOngkir(APIView):
             "weight": "100",
             "courier": "jne",
         }
-        payload = {**payload,**request.data}
+        payload = {**payload, **request.data}
         files = []
         headers = {"key": "597f52e05a00c744d13ff6957a8ee156"}
 

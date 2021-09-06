@@ -144,7 +144,19 @@ class ProductOrderSerializer(ModelSerializer):
     def get_slug(self, obj):
         return obj.product.slug
 
-
+class ProductDashboardSerializer(ModelSerializer):
+    varian = VarianSerializer(many=True)
+    thumb = SerializerMethodField()
+    class Meta:
+        model = Product
+        fields = ['id','price','title','thumb','varian','sold']
+    
+    def get_thumb(self, obj):
+        try:
+            qs = imageSerializer(obj.get_image()[0])
+            return qs.data
+        except Exception as e:
+            return None
 class ProductListSerializer(ModelSerializer):
 
     thumb = SerializerMethodField()
@@ -321,7 +333,6 @@ class ProductEditSerializer(ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "title",
             "desc",
             "varian",
             # masih berpikir buat Edit Varian

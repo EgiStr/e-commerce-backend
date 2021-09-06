@@ -2,7 +2,7 @@ from datetime import datetime
 
 from django.db.models.query import Prefetch
 from order.models import Order, OrderItem
-from store.api.serializers import ProductListSerializer, StoreSerializer
+from store.api.serializers import ProductDashboardSerializer, ProductListSerializer, StoreSerializer
 from costumer.models import Location, Store, TokenNotif
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -381,7 +381,7 @@ class UtilsProductSerializer(serializers.BaseSerializer):
             "count": instance.get("count", 0),
             "has_previous": instance.get("has_previous", False),
             "has_next": instance.get("has_next", False),
-            "result": ProductListSerializer(
+            "result": ProductDashboardSerializer(
                 instance.get("products"),
                 many=True,
             ).data,
@@ -399,8 +399,6 @@ class StoreProductsSerializers(ModelSerializer):
         fields = ["data"]
 
     def get_data(self, obj):
-        
-
         product = obj.get_product()
         paginator = Paginator(product, 5)
         try:
@@ -409,6 +407,7 @@ class StoreProductsSerializers(ModelSerializer):
             qs = paginator.page(1)
         except EmptyPage:
             qs = paginator.page(paginator.num_pages)
+
         product = {
             "products": qs.object_list,
             "has_next": qs.has_next(),

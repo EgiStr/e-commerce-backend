@@ -1,4 +1,3 @@
-from django.db.models import query
 from costumer.models import Store
 from rest_framework.permissions import  IsAuthenticated
 
@@ -84,7 +83,7 @@ class BookMarkUserApiView(ListCreateAPIView):
         return self.request.user
     
     def get_queryset(self):
-        qs = Bookmark.objects.filter(user = self.get_user_auth())
+        qs = Bookmark.objects.select_related('product').filter(user = self.get_user_auth())
         qs = [q.product for q in qs ]
         return qs
     
