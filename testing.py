@@ -8,7 +8,8 @@ def dictfetchall(cursor):
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-def databaseTest(query,data):
+
+def databaseTest(query, data):
     return query.lower() == data.lower()
 
 
@@ -17,8 +18,16 @@ if __name__ == "__main__":
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
     # cursor1 = connections["provinces"].cursor()
-    from datetime import datetime   
-    print()
+    from sercives.firebase.firestore import sendMessage
+    import asyncio
+    
+    asyncio.run(sendMessage(
+        {
+            "username": "egistr",
+            "content": "hello from django",
+            "channels_id": "0XZxF9zLJlgzrS8wbY94",
+        }
+    ))
 
     # f = open(
     #     "app.json",
@@ -28,7 +37,7 @@ if __name__ == "__main__":
     # error = []
     # for data in datas:
     #     query = f"SELECT city FROM db_postal_code_data WHERE city_id={data.get('city_id')};"
-            
+
     # #     changeTabel = (
     # #         f"UPDATE db_postal_code_data"
     # #         + f" SET city_id={data.get('city_id')}"
@@ -47,7 +56,6 @@ if __name__ == "__main__":
     #         print(data.get('city_id') + " ga ada")
 
     # print(error)
-        
 
     #         # query = """
     #         # SELECT * FROM db_postal_code_data WHERE id=1;
@@ -62,6 +70,6 @@ if __name__ == "__main__":
     #     # print(data.get("city_id"))
     # # query3 = """SELECT city_id FROM db_postal_code_data WHERE city LIKE '%Aceh Barat%' """
     # # with cursor1 as cursor:
-        
+
     # #     appDict = dictfetchall(cursor.execute(query))
     # #     print(json.dumps(appDict[0]))

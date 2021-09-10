@@ -1,16 +1,8 @@
-from firebase_admin import messaging, initialize_app, credentials
-import os
+from .firebase import firebase
 import datetime
+from firebase_admin import messaging
 
 # create firebase project in console.firebase and generated key for admin
-cred = credentials.Certificate(
-    os.path.join(
-        os.path.dirname(__file__),
-        "firebaseSdk.json",
-    )
-)
-
-firebase = initialize_app(cred, name="e-commerce")
 
 
 def send_notif_device(

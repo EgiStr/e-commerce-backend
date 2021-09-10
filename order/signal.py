@@ -6,7 +6,7 @@ from .models import Order, OrderItem
 from costumer.models import TokenNotif
 from notification.models import Notifikasi
 
-from utils.firebase.sendnotif import (
+from sercives.firebase.sendnotif import (
     send_notif_device,
     send_notif_multiple,
     registerToken,

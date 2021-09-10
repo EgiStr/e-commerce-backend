@@ -205,8 +205,8 @@ class DashbordView(UpdateModelMixin, GenericAPIView):
     permission_classes = [isAuthor, IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.request.method != "GET":
-            return UserEditProfilSerializer
+        # if self.request.method != "GET":
+        #     return UserEditProfilSerializer
         return UserDetailSerilaizer
 
     def get_queryset(self):
